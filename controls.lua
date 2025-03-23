@@ -49,3 +49,10 @@ function controls.isDown(t)
 		return false
 	end
 end
+
+-- Unit tests (runs only when not in a LÖVE environment)
+if not love then
+	assert(controls.check("left", "left") == true, "controls.check failed for key 'left'")
+	assert(controls.check("left", "a") == false, "controls.check should return false for wrong key")
+	print("controls.lua unit tests passed.")
+end
