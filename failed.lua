@@ -6,11 +6,11 @@ function failed_load()
 end
 
 function failed_draw()
-	--FULLSCREEN OFFSET
+	-- FULLSCREEN OFFSET
 	if fullscreen then
 		love.graphics.translate(fullscreenoffsetX, fullscreenoffsetY)
 		
-		--scissor
+		-- scissor
 		love.graphics.setScissor(fullscreenoffsetX, fullscreenoffsetY, 160*scale, 144*scale)
 	end
 	
@@ -22,8 +22,8 @@ function failed_draw()
 		love.graphics.draw(gameover, 16*scale, 0, 0, scale)
 	end
 	
-	--SCORES---------------------------------------
-	--"score"--
+	-- SCORES ---------------------------------------
+	-- "score" --
 	offsetX = 0
 	
 	scorestring = tostring(scorescore)
@@ -33,7 +33,7 @@ function failed_draw()
 	love.graphics.print( scorescore, 144*scale + offsetX, 24*scale, 0, scale)
 	
 	
-	--"level"--
+	-- "level" --
 	offsetX = 0
 	
 	scorestring = tostring(levelscore)
@@ -42,7 +42,7 @@ function failed_draw()
 	end
 	love.graphics.print( levelscore, 136*scale + offsetX, 56*scale, 0, scale)
 	
-	--"tiles"--
+	-- "tiles" --
 	offsetX = 0
 	
 	scorestring = tostring(linesscore)
@@ -53,11 +53,11 @@ function failed_draw()
 	-----------------------------------------------
 	
 	
-	--FULLSCREEN OFFSET
+	-- FULLSCREEN OFFSET
 	if fullscreen then
 		love.graphics.translate(-fullscreenoffsetX, -fullscreenoffsetY)
 		
-		--scissor
+		-- scissor
 		love.graphics.setScissor()
 	end
 end
