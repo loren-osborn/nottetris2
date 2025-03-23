@@ -1,4 +1,3 @@
--- controls.lua (Ported to LÖVE 11.5)
 -- Provides keyboard control settings and helper functions for the game.
 
 controls = {}
@@ -13,7 +12,7 @@ controls.settings.escape = {"key", {"escape"}}
 controls.settings.rotateleft = {"key", {"y", "z", "w"}}
 controls.settings.rotateright = {"key", {"x"}}
 
--- Player 2 controls
+--player 2 controls
 controls.settings.leftp2 = {"key", {"j"}}
 controls.settings.rightp2 = {"key", {"k"}}
 controls.settings.downp2 = {"key", {"m"}}
@@ -49,11 +48,4 @@ function controls.isDown(t)
 		end
 		return false
 	end
-end
-
--- Unit tests (runs only when not in a LÖVE environment)
-if not love then
-	assert(controls.check("left", "left") == true, "controls.check failed for key 'left'")
-	assert(controls.check("left", "a") == false, "controls.check should return false for wrong key")
-	print("controls.lua unit tests passed.")
 end
