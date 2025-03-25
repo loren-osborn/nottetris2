@@ -1,3 +1,5 @@
+-- Handles the single-player (gameA) game mode.
+
 function gameA_load()
 	gamestate = "gameA"
 	
@@ -19,7 +21,7 @@ function gameA_load()
 	nextpiecerot = 0
 	newlevelbeep = false
 	
-	--PHYSICS--
+	-- PHYSICS --
 	meter = 30
 	-- In LÖVE 11.5, newWorld accepts (gravityX, gravityY, allowSleep)
 	world = love.physics.newWorld(0, 720, true)
@@ -32,6 +34,7 @@ function gameA_load()
 	tetrifixturescopy = {}
 	data = {}
 	
+	-- Create walls using a static body.
 	wallbodies = love.physics.newBody(world, 32, -64, "static") -- WALLS
 	wallfixtures[0] = love.physics.newFixture(wallbodies, love.physics.newPolygonShape(-8, -64, -8,672, 24,672, 24,-64), 1.0)
 	wallfixtures[0]:setUserData({"left"})
@@ -51,7 +54,7 @@ function gameA_load()
 	-- world:setCallbacks(collideA)
 	-----------
 	
-	--FIRST "nextpiece"-
+	-- FIRST "nextpiece" --
 	nextpiece = math.random(7)
 	
 	checklinedensity(false)
@@ -61,20 +64,21 @@ function gameA_load()
 end
 
 function game_addTetriA() --creates new block (using createtetriA) at 1 and sets its velocity
-	--NEW BLOCK--
+	-- NEW BLOCK --
 	randomblock = nextpiece
 	createtetriA(randomblock, 1, 224, blockstartY)
 	tetribodies[1]:setLinearVelocity(0, difficulty_speed)
 end	
 
-function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes, image, imagedata and whatnot.
+function createtetriA(i, uniqueid, x, y) -- creates block, including body, shapes, image, imagedata and whatnot.
 
 	tetriimagedata[uniqueid] = newImageData( "graphics/pieces/"..i..".png", scale)
 	tetriimages[uniqueid] = padImagedata( tetriimagedata[uniqueid] )
 	tetrikind[uniqueid] = i
 	tetrifixtures[uniqueid] = {}
 	
-	if i == 1 then --I
+	-- In LÖVE 11.5, newBody is created with a type and then angle is set.
+	if i == 1 then -- I
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetribodies[uniqueid]:setAngle(blockrot)
 		tetrifixtures[uniqueid][1] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( -48,0, 32, 32), 1.0)
@@ -82,7 +86,7 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 16,0, 32, 32), 1.0)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 48,0, 32, 32), 1.0)
 		
-	elseif i == 2 then --J
+	elseif i == 2 then -- J
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetribodies[uniqueid]:setAngle(blockrot)
 		tetrifixtures[uniqueid][1] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( -32,-16, 32, 32), 1.0)
@@ -90,7 +94,7 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 32,-16, 32, 32), 1.0)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 32,16, 32, 32), 1.0)
 		
-	elseif i == 3 then --L
+	elseif i == 3 then -- L
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetribodies[uniqueid]:setAngle(blockrot)
 		tetrifixtures[uniqueid][1] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( -32,-16, 32, 32), 1.0)
@@ -98,7 +102,7 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 32,-16, 32, 32), 1.0)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( -32,16, 32, 32), 1.0)
 		
-	elseif i == 4 then --O
+	elseif i == 4 then -- O
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetribodies[uniqueid]:setAngle(blockrot)
 		tetrifixtures[uniqueid][1] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( -16,-16, 32, 32), 1.0)
@@ -106,7 +110,7 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 16,16, 32, 32), 1.0)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 16,-16, 32, 32), 1.0)
 		
-	elseif i == 5 then --S
+	elseif i == 5 then -- S
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetribodies[uniqueid]:setAngle(blockrot)
 		tetrifixtures[uniqueid][1] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( -32,16, 32, 32), 1.0)
@@ -114,7 +118,7 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 32,-16, 32, 32), 1.0)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 0,16, 32, 32), 1.0)
 		
-	elseif i == 6 then --T
+	elseif i == 6 then -- T
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetribodies[uniqueid]:setAngle(blockrot)
 		tetrifixtures[uniqueid][1] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( -32,-16, 32, 32), 1.0)
@@ -122,7 +126,7 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 32,-16, 32, 32), 1.0)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 0,16, 32, 32), 1.0)
 		
-	elseif i == 7 then --Z
+	elseif i == 7 then -- Z
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetribodies[uniqueid]:setAngle(blockrot)
 		tetrifixtures[uniqueid][1] = love.physics.newFixture(tetribodies[uniqueid], love.physics.newRectangleShape( 0,16, 32, 32), 1.0)
@@ -141,18 +145,18 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
 end
 
 function gameA_draw()
-	--FULLSCREEN OFFSET
+	-- FULLSCREEN OFFSET
 	if fullscreen then
 		love.graphics.translate(fullscreenoffsetX, fullscreenoffsetY)
 		
-		--scissor
+		-- scissor
 		love.graphics.setScissor(fullscreenoffsetX, fullscreenoffsetY, 160*scale, 144*scale)
 	end
 	
-	--background--
+	-- background --
 	love.graphics.draw(gamebackgroundcutoff, 0, 0, 0, scale, scale)
 	---------------
-	--tetrifixtures--
+	-- tetrifixtures --
 	if cuttingtimer == lineclearduration then
 		for i,v in pairs(tetribodies) do
 			if pause == false then
@@ -168,7 +172,7 @@ function gameA_draw()
 			end
 		end
 		
-		--blinky lines
+		-- Draw blinking lines with rainbow tint.
 		
 		local section = math.ceil(cuttingtimer/(
 lineclearduration/lineclearblinks))
@@ -190,13 +194,13 @@ lineclearduration/lineclearblinks))
 	end
 	
 	love.graphics.setColor(1, 1, 1)
-	--Next piece
+	-- Reset color and draw next piece.
 	if pause == false then
 		love.graphics.draw(nextpieceimg[nextpiece], 136*scale, 120*scale, nextpiecerot, 1, 1, piececenterpreview[nextpiece][1]*scale, piececenterpreview[nextpiece][2]*scale)
 	end
 	
 	----------------
-	--Last score
+	-- Draw last score (with a scrolling effect).
 	if scoreaddtimer < scoreaddtime then
 		if fullscreen then
 			love.graphics.setScissor(105*scale+fullscreenoffsetX, 35*scale+fullscreenoffsetY, 55*scale, 9*scale)
@@ -223,7 +227,7 @@ lineclearduration/lineclearblinks))
 	end
 	
 	
-	--line density counter
+	-- Draw line density counter.
 	for i = 1, 18 do
 		local fullness = linearea[i]/1024/linecleartreshold
 		if fullness > 1 then
@@ -244,14 +248,14 @@ lineclearduration/lineclearblinks))
 	love.graphics.setColor(1, 1, 1)
 	
 	---------
-	--start--
+	-- start --
 	if pause == true then
 		love.graphics.draw(pausegraphiccutoff, 14*scale, 0, 0, scale, scale)
 	end
 	---------
 	
-	--SCORES---------------------------------------
-	--"score"--
+	-- SCORES ---------------------------------------
+	-- "score" --
 	offsetX = 0
 	
 	scorestring = tostring(scorescore)
@@ -261,7 +265,7 @@ lineclearduration/lineclearblinks))
 	love.graphics.print( scorescore, 144*scale + offsetX, 24*scale, 0, scale, scale)
 	
 	
-	--"level"--
+	-- "level" --
 	offsetX = 0
 	
 	scorestring = tostring(levelscore)
@@ -270,7 +274,7 @@ lineclearduration/lineclearblinks))
 	end
 	love.graphics.print( levelscore, 136*scale + offsetX, 56*scale, 0, scale, scale)
 	
-	--"tiles"--
+	-- "tiles" --
 	offsetX = 0
 	
 	scorestring = tostring(linesscore)
@@ -281,17 +285,17 @@ lineclearduration/lineclearblinks))
 	-----------------------------------------------
 	
 	
-	--FULLSCREEN OFFSET
+	-- FULLSCREEN OFFSET
 	if fullscreen then
 		love.graphics.translate(-fullscreenoffsetX, -fullscreenoffsetY)
 		
-		--scissor
+		-- scissor
 		love.graphics.setScissor()
 	end
 end
 
 function gameA_update(dt)
-	--NEXTPIECE ROTATION (rotating allday erryday)
+	-- NEXTPIECE ROTATION (rotating allday erryday)
 	if cuttingtimer == lineclearduration then
 		nextpiecerot = nextpiecerot + nextpiecerotspeed*dt
 		while nextpiecerot > math.pi*2 do
@@ -299,11 +303,11 @@ function gameA_update(dt)
 		end
 	end
 	
-	--CUTTING TIMER
+	-- CUTTING TIMER
 	if cuttingtimer < lineclearduration then
 		cuttingtimer = cuttingtimer + dt
 		if cuttingtimer >= lineclearduration then
-			--RANDOMIZE NEXT PIECE
+			-- RANDOMIZE NEXT PIECE
 			nextpiece = math.random(7)
 			
 			cuttingtimer = lineclearduration
@@ -319,7 +323,7 @@ function gameA_update(dt)
 		return
 	end
 	
-	--SCOREADD TIMER
+	-- SCOREADD TIMER
 	if cuttingtimer == lineclearduration then
 		if scoreaddtimer < scoreaddtime then
 			scoreaddtimer = scoreaddtimer + dt
@@ -352,7 +356,7 @@ function gameA_update(dt)
 		
 		local x, y = tetribodies[1]:getLinearVelocity( )
 		if controls.isDown( "down" ) then
-			--commented part limits the blackfallspeed
+			-- commented part limits the blackfallspeed
 			if y > 500 then
 				tetribodies[1]:setLinearVelocity(x, 500)
 			else
@@ -375,7 +379,7 @@ function gameA_update(dt)
 	end
 
 	
-	--DENSITY UPDATE TIMER
+	-- DENSITY UPDATE TIMER
 	if densityupdatetimer >= densityupdateinterval then
 		while densityupdatetimer >= densityupdateinterval and cuttingtimer == lineclearduration do
 			checklinedensity(false)
@@ -398,7 +402,7 @@ function gameA_update(dt)
 	end
 end
 
-function getintersectX(shape, y) --returns left and right collision points to a certain shape on a Y coordinate (or -1, -0.9 if no collision)
+function getintersectX(shape, y) -- returns left and right collision points to a certain shape on a Y coordinate (or -1, -0.9 if no collision)
 	local lefttime = shape:rayCast( 55, y, 385, y, 1)
 	local righttime = shape:rayCast( 385, y, 55, y, 1)
 	if lefttime and righttime then
@@ -410,7 +414,7 @@ function getintersectX(shape, y) --returns left and right collision points to a 
 	end
 end
 
-function removeline(lineno) --Does all necessary things to clear a line. Refineshape and cutimage included.
+function removeline(lineno) -- Does all necessary things to clear a line. Refineshape and cutimage included.
 	upperline = (lineno - 1) * 32
 	lowerline = lineno * 32
 	globaline = lineno
@@ -418,7 +422,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 	numberofbodies = highestbody()
 	local ioffset = 0
 	tetribodies[1] = "dummy :D"
-	for i = 2, numberofbodies do --every body
+	for i = 2, numberofbodies do -- every body
 		v = tetribodies[i-ioffset]
 		if i-ioffset > numberofbodies then
 			print("oh yeah")
@@ -454,21 +458,21 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 				end
 			end
 			
-			for j, w in pairs(tetrifixtures[i-ioffset]) do --Every shape
+			for j, w in pairs(tetrifixtures[i-ioffset]) do -- Every shape
 				above = false
 				inside = false
 				below = false
 				coordinateproperties[i-ioffset][j] = {}
 				coordinates = getPoints2table(w:getShape())
 				
-				for y = 1, #coordinates, 2 do --Every Point
-					if coordinates[y+1] < upperline then --POINT ABOVE CUTRECT
+				for y = 1, #coordinates, 2 do -- Every Point
+					if coordinates[y+1] < upperline then -- POINT ABOVE CUTRECT
 						coordinateproperties[i-ioffset][j][math.ceil(y/2)] = 1
 						above = true
 					elseif coordinates[y+1] >= upperline and coordinates[y+1] <= lowerline then --POINT INSIDE CUTRECT!
 						coordinateproperties[i-ioffset][j][math.ceil(y/2)] = 2
 						inside = true
-					elseif coordinates[y+1] > lowerline then --POINT BELOW CUTRECT
+					elseif coordinates[y+1] > lowerline then -- POINT BELOW CUTRECT
 						coordinateproperties[i-ioffset][j][math.ceil(y/2)] = 3
 						below = true
 					end
@@ -481,7 +485,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 					tetrifixturescopy[#tetrifixturescopy+1]=refineshape(lowerline, -1, i-ioffset, v, j, w)
 					refined = true
 				elseif above == false and inside == true and below == false then
-					--nothing because it'll get removed (don't delete the elseif though cause it'll go though the "else")
+					-- nothing because it'll get removed (don't delete the elseif though cause it'll go though the "else")
 					refined = true
 				elseif above == false and inside == true and below == true then
 					tetrifixturescopy[#tetrifixturescopy+1]=refineshape(lowerline, -1, i-ioffset, v, j, w)
@@ -500,9 +504,9 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 			end
 			if refined == true then
 			
-			--create for either above our below; or both if body is cut in center.
-			--gotta set the bodyids here and reuse them in the "check for disconnect shapes" further down
-			for a, b in pairs(tetrifixtures[i-ioffset]) do --remove all shapes
+			-- create for either above our below; or both if body is cut in center.
+			-- gotta set the bodyids here and reuse them in the "check for disconnect shapes" further down
+			for a, b in pairs(tetrifixtures[i-ioffset]) do -- remove all shapes
 				if tetrifixtures[i-ioffset][a] then
 					tetrifixtures[i-ioffset][a]:destroy()
 					tetrifixtures[i-ioffset][a] = nil
@@ -511,7 +515,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 			
 			tetrifixtures[i-ioffset] = {}
 			
-			if #tetrifixturescopy == 0 then --body empty
+			if #tetrifixturescopy == 0 then -- body empty
 				if tetribodies[i-ioffset] then
 					tetribodies[i-ioffset]:destroy()
 					table.remove(tetribodies, i-ioffset)
@@ -524,17 +528,17 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 				end
 			else
 				
-				----check for disconnected shapes
-				--apply group numbers to shapes then loop through each existing value, creating a new body for everything > 1 (max should be 3 I think).
+				---- check for disconnected shapes
+				-- apply group numbers to shapes then loop through each existing value, creating a new body for everything > 1 (max should be 3 I think).
 				shapegroups = {}
 				numberofgroups = 0
-				for a, b in pairs(tetrifixturescopy) do --through all shapes
+				for a, b in pairs(tetrifixturescopy) do -- through all shapes
 					shapegroups[a] = 0
 					currentcoords = getPoints2table(b:getShape())
-					for shapecounter = 1, a - 1 do --Through all previously set groups
+					for shapecounter = 1, a - 1 do -- Through all previously set groups
 						coords = getPoints2table(tetrifixturescopy[shapecounter]:getShape())
-						for currentcoordsvar = 1, #currentcoords/2 do --through all coords in the current shape
-							for coordsvar = 1, #coords/2 do --through all coords in all previously set groups (Holy shit 6 stacked "for" loops; I code like an asshole!)
+						for currentcoordsvar = 1, #currentcoords/2 do -- through all coords in the current shape
+							for coordsvar = 1, #coords/2 do -- through all coords in all previously set groups (Holy shit 6 stacked "for" loops; I code like an asshole!)
 								if math.abs(currentcoords[currentcoordsvar*2-1] - coords[coordsvar*2-1]) < 2 and math.abs(currentcoords[currentcoordsvar*2] - coords[coordsvar*2]) < 2 then
 									shapegroups[a] = shapegroups[shapecounter]
 								end
@@ -542,16 +546,16 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 						end
 					end
 					
-					if shapegroups[a] == 0 then --create new group
+					if shapegroups[a] == 0 then -- create new group
 						numberofgroups = numberofgroups + 1
 						shapegroups[a] = numberofgroups
 					end
 				end
 				
-				--All shapes have now an assigned group number in "shapegroups[shape] = groupnumber" :) yay.
+				-- All shapes have now an assigned group number in "shapegroups[shape] = groupnumber" :) yay.
 				
 				for a = 1, numberofgroups do
-					if a == 1 then --reassign the old bodyid
+					if a == 1 then -- reassign the old bodyid
 						rotation = tetribodies[i-ioffset]:getAngle()
 						local bodytodestroy = tetribodies[i-ioffset]
 						tetrifixtures[i-ioffset] = {}
@@ -571,11 +575,11 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 							end
 						end
 						
-						--save old imagedata to local var first in case we create a new bodyid..
+						-- save old imagedata to local var first in case we create a new bodyid..
 						backupimagedata = love.image.newImageData( tetriimagedata[i-ioffset]:getWidth(), tetriimagedata[i-ioffset]:getHeight())
 						backupimagedata:paste(tetriimagedata[i-ioffset], 0, 0, 0, 0, tetriimagedata[i-ioffset]:getWidth(), tetriimagedata[i-ioffset]:getHeight() )
 						
-						--cut the image.
+						-- cut the image.
 						cutimage(i-ioffset, numberofgroups)
 						
 						--mass confusion
@@ -594,7 +598,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 							end
 						end
 						
-					else --create new bodyid
+					else -- create new bodyid
 						tetribodies[highestbody()+1] = love.physics.newBody(world, tetribodies[i-ioffset]:getX(), tetribodies[i-ioffset]:getY(), tetribodies[i-ioffset]:getMass(), blockrot)
 						tetribodies[highestbody()]:setAngle(tetribodies[i-ioffset]:getAngle())
 						tetrifixtures[highestbody()] = {}
@@ -606,7 +610,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 									cotable[var], cotable[var+1] = tetribodies[i-ioffset]:getLocalPoint(cotable[var], cotable[var+1])
 								end
 								tetrifixtures[highestbody()][#tetrifixtures[highestbody()]+1] = love.physics.newPolygonShape(tetribodies[highestbody()], unpack(cotable))
-								tetrifixtures[highestbody()][#tetrifixtures[highestbody()]]:setUserData({highestbody()}) --set the shape name for collision
+								tetrifixtures[highestbody()][#tetrifixtures[highestbody()]]:setUserData({highestbody()}) -- set the shape name for collision
 							end
 						end
 						
@@ -625,7 +629,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 						debugimagedata:paste(backupimagedata, 0, 0, 0, 0, backupimagedata:getWidth(), backupimagedata:getHeight() )
 						debugimage = padImagedata( debugimagedata )
 						
-						--cut the image
+						-- cut the image
 						cutimage(highestbody(), numberofgroups)
 						
 						--mass confusion
@@ -645,10 +649,10 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 						end
 					end
 				end		
-			end --if body empty
-			end --if refined
+			end -- if body empty
+			end -- if refined
 			
-			--clean up the tables..
+			-- clean up the tables..
 			for a, b in pairs(tetrifixturescopy) do
 				if tetrifixturescopy[a] then
 					tetrifixturescopy[a]:destroy()
@@ -657,7 +661,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 			end
 			
 			tetrifixturescopy = {}
-		end --if i-ioffset > 1
+		end -- if i-ioffset > 1
 	end
 end
 
@@ -756,12 +760,21 @@ function cutimage(bodyid, numberofgroups) --cuts the image of a body based on it
 	tetriimages[bodyid] = padImagedata( tetriimagedata[bodyid] )
 end
 
+--- refineshape
+-- Refines a polygon shape by “cutting” it along a horizontal line.
+-- @param line The Y coordinate (in world units) at which to cut.
+-- @param mult A multiplier (1 or -1) indicating the cut direction.
+-- @param bodyid The index of the body in the global tetribodies table.
+-- @param body The physics body (already created) for the block.
+-- @param shapeid The index of the shape within tetrifixtures[bodyid] to refine.
+-- @param shape (unused parameter – can be omitted)
+-- @return A new PolygonShape based on the refined coordinates.
 function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape using the old coordinates and the cutting line
 	local leftx, rightx = getintersectX(tetrifixtures[bodyid][shapeid], line)
-	if leftx ~= -1 then --Not sure what to do if not
+	if leftx ~= -1 then -- Not sure what to do if not
 		local coords = getPoints2table(tetrifixtures[bodyid][shapeid]:getShape())
 		
-		--remove all points inside the cutting zone
+		-- remove all points inside the cutting zone
 		local lastcutoff
 		local i=2
 		while i <= #coords do
@@ -774,7 +787,7 @@ function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape
 			i=i+2
 		end
 		
-		--add new points (Only if they aren't identical to existing points)
+		-- add new points (Only if they aren't identical to existing points)
 		if lastcutoff then
 			if mult == 1 then
 				if samepos(coords, line, leftx) == false then
@@ -799,7 +812,7 @@ function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape
 			end
 		end
 		
-		--create the new shape
+		-- create the new shape
 		if #coords/2 >= 3 and #coords/2 <= 8 then --shape still has 3 or more points, and not over 8.
 			if largeenough(coords) then
 				local newcoords={}
@@ -821,6 +834,12 @@ function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape
 	end
 end
 
+--- checklinedensity
+-- Checks each of the 18 horizontal lines for “density” (area covered by blocks)
+-- and if active is true, removes any lines that exceed the threshold.
+-- Also handles scoring and level adjustments.
+-- @param active A boolean: if true, the removal (and associated scoring) is performed.
+-- @return true if at least one line was removed.
 function checklinedensity(active) --checks all 18 lines and, if active == true, calls removeline. Also does scoring, sounds and stuff.
 	--loop through every shape and add each area to a nax
 	
@@ -833,7 +852,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 	for i = 2, #tetribodies do
 		for j, k in pairs(tetrifixtures[i]) do
 			local coords = getPoints2table(k:getShape())
-			--Get first and last involved line
+			-- Get first and last involved line
 			local firstline = 19
 			local lastline =  0
 			
@@ -887,7 +906,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 							offset = offset + 1
 						until leftx ~= -1 or offset >= 32
 						
-						--remove all points below the line
+						-- remove all points below the line
 						local coi=2
 						local lastcutoff = nil
 						while coi <= #coords do
@@ -900,7 +919,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 							coi=coi+2
 						end
 						
-						--add points of bottom line (if points were cut off)
+						-- add points of bottom line (if points were cut off)
 						if lastcutoff then
 							table.insert(coords, lastcutoff-1,leftx)
 							table.insert(coords, lastcutoff,(line)*32)
@@ -927,7 +946,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 					cuttingtimer = 0
 					removedlines = true
 					
-					--Save position, image, kind and image of each kind so I can draw them even after changing the actual parts.
+					-- Save position, image, kind and image of each kind so I can draw them even after changing the actual parts.
 					
 					tetricutpos = {}
 					tetricutang = {}
@@ -967,10 +986,10 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 				love.audio.play(lineclear)
 			end
 			
-			--Possible scoring functions:
-			-- (numberoflines^2*40)+(numberoflines*50)* averagearea^8 (mine)
-			-- (NUMOFLINES*3)^(AREA^10)*20+NUMOFLINES^2*40 (murks)
-			--old scoring
+			-- Possible scoring functions:
+			--  (numberoflines^2*40)+(numberoflines*50)* averagearea^8 (mine)
+			--  (NUMOFLINES*3)^(AREA^10)*20+NUMOFLINES^2*40 (murks)
+			-- old scoring
 			--[[
 			if numberoflines == 1 then
 				scorescore = scorescore + 40
@@ -985,7 +1004,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 			end
 			]]
 			
-			--calculate average area
+			-- calculate average area
 			local averagearea = 0
 			for i = 1, 18 do
 				if linesremoved[i] then
@@ -1028,8 +1047,8 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 	end
 end
 
-function polygonarea(coords) --calculates the area of a polygon
-	--Also written by Adam (see below)
+function polygonarea(coords) -- calculates the area of a polygon
+	-- Also written by Adam (see below)
 	local anchorX = coords[1]
 	local anchorY = coords[2]
 
@@ -1052,8 +1071,8 @@ function polygonarea(coords) --calculates the area of a polygon
 	return area
 end
 
-function largeenough(coords) --checks if a polygon is good enough for box2d's snobby standards.
-	--Written by Adam/earthHunter
+function largeenough(coords) -- checks if a polygon is good enough for box2d's snobby standards.
+	-- Written by Adam/earthHunter
 
 	-- Calculation of centroids of each triangle
 
@@ -1153,7 +1172,7 @@ function largeenough(coords) --checks if a polygon is good enough for box2d's sn
 
 end
 
-function highestbody() --returns the highest body in tetribodies. Because without the 1 body, #tetribodies sometimes fails or something
+function highestbody() -- returns the highest body in tetribodies. Because without the 1 body, #tetribodies sometimes fails or something
 	i = 2
 	while tetribodies[i] ~= nil do
 		i = i + 1
@@ -1161,7 +1180,7 @@ function highestbody() --returns the highest body in tetribodies. Because withou
 	return i-1
 end
 
-function samepos(coords, y, x) --checks if any point in a table is identical to another point (THIS SEEMS FISHY, CHECK THIS OUT)
+function samepos(coords, y, x) -- checks if any point in a table is identical to another point (THIS SEEMS FISHY, CHECK THIS OUT)
 	for j = 1, #coords, 2 do
 		if math.abs(coords[j+1]-y) + math.abs(coords[j]-x) == 0 then
 			return true
@@ -1170,8 +1189,12 @@ function samepos(coords, y, x) --checks if any point in a table is identical to 
 	return false
 end
 
-function collideA(a, b, coll) --box2d callback. calls endblock.
-	--Sometimes a is nil or something I have no idea why.
+--- collideA
+-- Collision callback used by the physics world for gameA.
+-- When a collision involves a shape with data "1" (the active piece),
+-- it either triggers failure or “ends” the block.
+function collideA(a, b, coll) -- box2d callback. calls endblock.
+	-- Sometimes a is nil or something I have no idea why.
 	if not a or not b then
 		return
 	end
@@ -1219,12 +1242,15 @@ function collideA(a, b, coll) --box2d callback. calls endblock.
 	end
 end
 
-function endblockA() --handles failing, moving the current block to the end of the tables and calls checklinedensity in active mode
+--- endblockA
+-- Called when the active piece “lands” (and is not failing) to transfer it from
+-- the active slot and then either trigger a line check.
+function endblockA() -- handles failing, moving the current block to the end of the tables and calls checklinedensity in active mode
 	if checklinedensity(true) then
 		game_addTetriA()
 	else
 		game_addTetriA()
-		--RANDOMIZE NEXT PIECE
+		-- RANDOMIZE NEXT PIECE
 		nextpiece = math.random(7)
 	end
 end
