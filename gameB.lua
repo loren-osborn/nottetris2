@@ -10,7 +10,7 @@ function gameB_load()
 	linesscore = 40
 	nextpiecerot = 0
 	
-	--PHYSICS--
+	-- PHYSICS --
 	meter = 30
 	world = love.physics.newWorld(0, 500, true )
 	
@@ -26,7 +26,7 @@ function gameB_load()
 	
 	wallfixtures = {}
 	
-	wallbodies = love.physics.newBody(world, 32, -64, "static") --WALLS
+	wallbodies = love.physics.newBody(world, 32, -64, "static") -- WALLS
 	wallshapes[0] = love.physics.newPolygonShape( 0, -64, 0,672, 32,672, 32,-64)
 	wallshapes[1] = love.physics.newPolygonShape( 352,-64, 352,672, 384,672, 384,-64)
 	wallshapes[2] = love.physics.newPolygonShape( 24,640, 24,672, 352,672, 352,640)
@@ -53,20 +53,20 @@ function gameB_load()
 	-- world:setCallbacks(collideB)
 	-----------
 	
-	--FIRST "nextpiece"-
-	nextpiece = 1--math.random(7)
+	-- FIRST "nextpiece"-
+	nextpiece = 1 -- math.random(7)
 	
 	game_addTetriB()
 	----------------
 end
 
 function game_addTetriB()
-	--NEW BLOCK--
+	-- NEW BLOCK --
 	randomblock = nextpiece
 	createtetriB(randomblock, 1, 224, blockstartY)
 	tetribodies[1]:setLinearVelocity(0, difficulty_speed)
 	
-	--RANDOMIZE
+	-- RANDOMIZE
 	nextpiece = math.random(7)
 end
 
@@ -77,7 +77,7 @@ function createtetriB(i, uniqueid, x, y)
 	tetrifixtures[uniqueid] = {}
 	tetrishapes[uniqueid] = {}
 	
-	if i == 1 then --I
+	if i == 1 then -- I
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		
 		tetrishapes[uniqueid][1] = love.physics.newRectangleShape(-48,0, 32, 32)
@@ -90,7 +90,7 @@ function createtetriB(i, uniqueid, x, y)
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][3], density)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][4], density)
 		
-	elseif i == 2 then --J
+	elseif i == 2 then -- J
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetrishapes[uniqueid][1] = love.physics.newRectangleShape(-32,-16, 32, 32)
 		tetrishapes[uniqueid][2] = love.physics.newRectangleShape(0,-16, 32, 32)
@@ -102,7 +102,7 @@ function createtetriB(i, uniqueid, x, y)
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][3], density)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][4], density)
 		
-	elseif i == 3 then --L
+	elseif i == 3 then -- L
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetrishapes[uniqueid][1] = love.physics.newRectangleShape(-32,-16, 32, 32)
 		tetrishapes[uniqueid][2] = love.physics.newRectangleShape(0,-16, 32, 32)
@@ -114,7 +114,7 @@ function createtetriB(i, uniqueid, x, y)
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][3], density)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][4], density)
 		
-	elseif i == 4 then --O
+	elseif i == 4 then -- O
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetrishapes[uniqueid][1] = love.physics.newRectangleShape(-16,-16, 32, 32)
 		tetrishapes[uniqueid][2] = love.physics.newRectangleShape(-16,16, 32, 32)
@@ -126,7 +126,7 @@ function createtetriB(i, uniqueid, x, y)
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][3], density)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][4], density)
 		
-	elseif i == 5 then --S
+	elseif i == 5 then -- S
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetrishapes[uniqueid][1] = love.physics.newRectangleShape(-32,16, 32, 32)
 		tetrishapes[uniqueid][2] = love.physics.newRectangleShape(0,-16, 32, 32)
@@ -138,7 +138,7 @@ function createtetriB(i, uniqueid, x, y)
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][3], density)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][4], density)
 		
-	elseif i == 6 then --T
+	elseif i == 6 then -- T
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetrishapes[uniqueid][1] = love.physics.newRectangleShape(-32,-16, 32, 32)
 		tetrishapes[uniqueid][2] = love.physics.newRectangleShape(0,-16, 32, 32)
@@ -150,7 +150,7 @@ function createtetriB(i, uniqueid, x, y)
 		tetrifixtures[uniqueid][3] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][3], density)
 		tetrifixtures[uniqueid][4] = love.physics.newFixture(tetribodies[uniqueid], tetrishapes[uniqueid][4], density)
 		
-	elseif i == 7 then --Z
+	elseif i == 7 then -- Z
 		tetribodies[uniqueid] = love.physics.newBody(world, x, y, "dynamic")
 		tetrishapes[uniqueid][1] = love.physics.newRectangleShape(0,16, 32, 32)
 		tetrishapes[uniqueid][2] = love.physics.newRectangleShape(0,-16, 32, 32)
@@ -173,37 +173,37 @@ function createtetriB(i, uniqueid, x, y)
 end
 
 function gameB_draw()
-	--FULLSCREEN OFFSET
+	-- FULLSCREEN OFFSET
 	if fullscreen then
 		love.graphics.translate(fullscreenoffsetX, fullscreenoffsetY)
 		
-		--scissor
+		-- scissor
 		love.graphics.setScissor(fullscreenoffsetX, fullscreenoffsetY, 160*scale, 144*scale)
 	end
 	
-	--background--
+	-- background --
 	love.graphics.draw(gamebackground, 0, 0, 0, scale)
 	---------------
-	--tetrifixtures--
+	-- tetrifixtures --
 	for i,v in pairs(tetribodies) do
 		if pause == false then
 			love.graphics.draw( tetriimages[i], v:getX()*physicsscale, v:getY()*physicsscale, v:getAngle(), 1, 1, piececenter[tetrikind[i]][1]*scale, piececenter[tetrikind[i]][2]*scale)
 		end
 	end
 	
-	--Next piece
+	-- Next piece
 	if pause == false then
 		love.graphics.draw(nextpieceimg[nextpiece], 136*scale, 120*scale, nextpiecerot, 1, 1, piececenterpreview[nextpiece][1]*scale, piececenterpreview[nextpiece][2]*scale)
 	end
 	----------------
-	--start--
+	-- start --
 	if pause == true then
 		love.graphics.draw(pausegraphic, 16*scale, 0, 0, scale)
 	end
 	---------
 	
-	--SCORES---------------------------------------
-	--"score"--
+	-- SCORES ---------------------------------------
+	-- "score" --
 	offsetX = 0
 	
 	scorestring = tostring(scorescore)
@@ -213,7 +213,7 @@ function gameB_draw()
 	love.graphics.print( scorescore, 144*scale + offsetX, 24*scale, 0, scale)
 	
 	
-	--"level"--
+	-- "level" --
 	offsetX = 0
 	
 	scorestring = tostring(levelscore)
@@ -222,7 +222,7 @@ function gameB_draw()
 	end
 	love.graphics.print( levelscore, 136*scale + offsetX, 56*scale, 0, scale)
 	
-	--"tiles"--
+	-- "tiles" --
 	offsetX = 0
 	
 	scorestring = tostring(linesscore)
@@ -234,7 +234,7 @@ function gameB_draw()
 	
 	love.graphics.setColor(1, 0, 0)
 
-	--DEBUG--
+	-- DEBUG --
 	
 		for i,v in pairs(tetribodies) do
 			x, y = v:getWorldCenter( )
@@ -252,11 +252,11 @@ function gameB_draw()
 	
 	love.graphics.setColor(1, 1, 1)
 	
-	--FULLSCREEN OFFSET
+	-- FULLSCREEN OFFSET
 	if fullscreen then
 		love.graphics.translate(-fullscreenoffsetX, -fullscreenoffsetY)
 		
-		--scissor
+		-- scissor
 		love.graphics.setScissor()
 	end
 	
@@ -268,7 +268,7 @@ function gameB_update(dt)
 		newblock = false
 	end
 
-	--NEXTPIECE ROTATION (rotating allday erryday)
+	-- NEXTPIECE ROTATION (rotating allday erryday)
 	nextpiecerot = (nextpiecerot + nextpiecerotspeed*dt)  % (math.pi*2)
 
 	if gamestate == "gameB" then
@@ -294,7 +294,7 @@ function gameB_update(dt)
 		
 		local x, y = tetribodies[1]:getLinearVelocity( )
 		if love.keyboard.isDown( "down" ) then
-			--commented part limits the blackfallspeed
+			-- commented part limits the blackfallspeed
 			if y > difficulty_speed*5 then
 				tetribodies[1]:setLinearVelocity(x, difficulty_speed*5)
 			else
@@ -337,7 +337,7 @@ end
 
 function endblockB()
 	if tetribodies[1]:getY() < losingY then
-		--LOSE--
+		-- LOSE --
 		gamestate = "failingB"
 		if musicno < 4 then
 			love.audio.stop(music[musicno])
@@ -348,7 +348,7 @@ function endblockB()
 		-- physics shape destruction needs to be reworked.
 		wallshapes[2] = nil
 	else
-		--Transfer block from 1 to end of tetribodies
+		-- Transfer block from 1 to end of tetribodies
 		tetrikind[highestbody()+1] = tetrikind[1]
 		
 		tetriimages[highestbody()+1] = tetriimages[1]

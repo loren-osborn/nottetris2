@@ -63,7 +63,7 @@ function gameA_load()
 	----------------
 end
 
-function game_addTetriA() --creates new block (using createtetriA) at 1 and sets its velocity
+function game_addTetriA() -- creates new block (using createtetriA) at 1 and sets its velocity
 	-- NEW BLOCK --
 	randomblock = nextpiece
 	createtetriA(randomblock, 1, 224, blockstartY)
@@ -469,7 +469,7 @@ function removeline(lineno) -- Does all necessary things to clear a line. Refine
 					if coordinates[y+1] < upperline then -- POINT ABOVE CUTRECT
 						coordinateproperties[i-ioffset][j][math.ceil(y/2)] = 1
 						above = true
-					elseif coordinates[y+1] >= upperline and coordinates[y+1] <= lowerline then --POINT INSIDE CUTRECT!
+					elseif coordinates[y+1] >= upperline and coordinates[y+1] <= lowerline then -- POINT INSIDE CUTRECT!
 						coordinateproperties[i-ioffset][j][math.ceil(y/2)] = 2
 						inside = true
 					elseif coordinates[y+1] > lowerline then -- POINT BELOW CUTRECT
@@ -571,7 +571,7 @@ function removeline(lineno) -- Does all necessary things to clear a line. Refine
 									cotable[var], cotable[var+1] = tetribodies[i-ioffset]:getLocalPoint(cotable[var], cotable[var+1])
 								end
 								tetrifixtures[i-ioffset][#tetrifixtures[i-ioffset]+1] = love.physics.newFixture(tetribodies[i-ioffset], love.physics.newPolygonShape(unpack(cotable)), 1.0)
-								tetrifixtures[i-ioffset][#tetrifixtures[i-ioffset]]:setUserData({i-ioffset}) --set the shape name for collision
+								tetrifixtures[i-ioffset][#tetrifixtures[i-ioffset]]:setUserData({i-ioffset}) -- set the shape name for collision
 							end
 						end
 						
@@ -582,7 +582,7 @@ function removeline(lineno) -- Does all necessary things to clear a line. Refine
 						-- cut the image.
 						cutimage(i-ioffset, numberofgroups)
 						
-						--mass confusion
+						-- mass confusion
 						tetribodies[i-ioffset]:resetMassData()
 						
 						local mass = tetribodies[i-ioffset]:getMass()
@@ -632,7 +632,7 @@ function removeline(lineno) -- Does all necessary things to clear a line. Refine
 						-- cut the image
 						cutimage(highestbody(), numberofgroups)
 						
-						--mass confusion
+						-- mass confusion
 						tetribodies[highestbody()]:resetMassData()
 						
 						local mass = tetribodies[highestbody()]:getMass()
@@ -665,7 +665,7 @@ function removeline(lineno) -- Does all necessary things to clear a line. Refine
 	end
 end
 
-function cutimage(bodyid, numberofgroups) --cuts the image of a body based on its shapes (2nd argument might be obsolete)
+function cutimage(bodyid, numberofgroups) -- cuts the image of a body based on its shapes (2nd argument might be obsolete)
 	
 	local width = tetriimagedata[bodyid]:getWidth()
 	local height = tetriimagedata[bodyid]:getHeight()
@@ -688,7 +688,7 @@ function cutimage(bodyid, numberofgroups) --cuts the image of a body based on it
 		end
 	end
 	
-	--get if to chose lower or upper line
+	-- get if to chose lower or upper line
 	local posy = getPoints2table(tetrifixtures[bodyid][1]:getShape())
 	posy = posy[2]
 	
@@ -698,7 +698,7 @@ function cutimage(bodyid, numberofgroups) --cuts the image of a body based on it
 		line = upperline
 	end
 	
-	--convert points to local coordinates
+	-- convert points to local coordinates
 	local dummy1, dummy2 = tetribodies[bodyid]:getLocalPoint( lowestx, line )
 	dummy1, dummy2 = dummy1 + width/2, dummy2 + height/2
 	local point1 = {dummy1, dummy2}
@@ -710,7 +710,7 @@ function cutimage(bodyid, numberofgroups) --cuts the image of a body based on it
 	local leftlimit = 160*scale
 	local rightlimit = -1
 	
-	--find out the limits of there's more than 1 body being created
+	-- find out the limits of there's more than 1 body being created
 	if numberofgroups > 1 then
 		for s = 1, #tetrifixtures[bodyid] do
 			local cotable = getPoints2table(tetrifixtures[bodyid][s]:getShape())
@@ -734,7 +734,7 @@ function cutimage(bodyid, numberofgroups) --cuts the image of a body based on it
 	
 	for y = 0, height-1 do
 		for x = 0, width-1 do
-		--[[local ang2 = math.atan2(x - point1[1], y - point1[2]) --PART OF OLD METHOD
+		--[[local ang2 = math.atan2(x - point1[1], y - point1[2]) -- PART OF OLD METHOD
 			ang2 = -ang2 + math.pi
 			
 			if (ang2 > ang and ang2 < ang + math.pi) or ang2 < ang - math.pi or (x < leftlimit or x > rightlimit) then
@@ -769,7 +769,7 @@ end
 -- @param shapeid The index of the shape within tetrifixtures[bodyid] to refine.
 -- @param shape (unused parameter – can be omitted)
 -- @return A new PolygonShape based on the refined coordinates.
-function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape using the old coordinates and the cutting line
+function refineshape(line, mult, bodyid, body, shapeid, shape) -- refines a shape using the old coordinates and the cutting line
 	local leftx, rightx = getintersectX(tetrifixtures[bodyid][shapeid], line)
 	if leftx ~= -1 then -- Not sure what to do if not
 		local coords = getPoints2table(tetrifixtures[bodyid][shapeid]:getShape())
@@ -813,7 +813,7 @@ function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape
 		end
 		
 		-- create the new shape
-		if #coords/2 >= 3 and #coords/2 <= 8 then --shape still has 3 or more points, and not over 8.
+		if #coords/2 >= 3 and #coords/2 <= 8 then -- shape still has 3 or more points, and not over 8.
 			if largeenough(coords) then
 				local newcoords={}
 				for i=1,#coords,2 do
@@ -840,8 +840,8 @@ end
 -- Also handles scoring and level adjustments.
 -- @param active A boolean: if true, the removal (and associated scoring) is performed.
 -- @return true if at least one line was removed.
-function checklinedensity(active) --checks all 18 lines and, if active == true, calls removeline. Also does scoring, sounds and stuff.
-	--loop through every shape and add each area to a nax
+function checklinedensity(active) -- checks all 18 lines and, if active == true, calls removeline. Also does scoring, sounds and stuff.
+	-- loop through every shape and add each area to a nax
 	
 	linearea = {}
 	
@@ -876,7 +876,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 							offset = offset + 1
 						until leftx ~= -1 or offset >= 32
 						
-						--remove all points above the line
+						-- remove all points above the line
 						local coi=2
 						local lastcutoff = nil
 						while coi <= #coords do
@@ -889,7 +889,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 							coi=coi+2
 						end
 						
-						--add points of top line (if points were cut off)
+						-- add points of top line (if points were cut off)
 						if lastcutoff then
 							table.insert(coords, lastcutoff-1,rightx)
 							table.insert(coords, lastcutoff,(line-1)*32)
@@ -963,7 +963,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 						end
 					end
 					
-					--[[for j, k in pairs(tetribodies) do --CANCEL ALL BLOCK MOVEMENT
+					--[[for j, k in pairs(tetribodies) do -- CANCEL ALL BLOCK MOVEMENT
 						if k.setLinearVelocity then
 							k:setLinearVelocity(0, 0)
 							k:setAngularVelocity(0, 0)
@@ -1019,7 +1019,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 			lastscoreadd = scoreadd
 			scoreaddtimer = 0
 			
-			--Level
+			-- Level
 			linescleared = linescleared + numberoflines
 			
 			if math.floor(linescleared/10) > levelscore then
@@ -1028,7 +1028,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 				newlevelbeep = true
 			end
 			
-			--Draw the screen before removing lines.
+			-- Draw the screen before removing lines.
 			love.graphics.clear()
 			gameA_draw()
 			love.graphics.present( )
