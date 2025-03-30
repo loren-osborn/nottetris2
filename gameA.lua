@@ -166,7 +166,8 @@ function gameA_draw()
 		
 		--blinky lines
 		
-		local section = math.ceil(cuttingtimer/(lineclearduration/lineclearblinks))
+		local section = math.ceil(cuttingtimer/(
+lineclearduration/lineclearblinks))
 		if section % 2 == 1 or cuttingtimer == 0 then
 		
 			local rr, rg, rb = unpack(getrainbowcolor(hue))
@@ -490,7 +491,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 					for var = 1, #cotable, 2 do
 						cotable[var], cotable[var+1] = tetribodies[i-ioffset]:getLocalPoint(cotable[var], cotable[var+1])
 					end
-					tetrifixturescopy[#tetrifixturescopy+1] = love.physics.newPolygonShape(tetribodies[i-ioffset], unpack(cotable))
+					tetrifixturescopy[#tetrifixturescopy+1] = love.physics.newFixture(tetribodies[i-ioffset], love.physics.newPolygonShape(unpack(cotable)), 1.0)
 				end
 			end
 			if refined == true then
@@ -553,14 +554,15 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 						tetribodies[i-ioffset] = love.physics.newBody(world, tetribodies[i-ioffset]:getX(), tetribodies[i-ioffset]:getY(), "dynamic")
 						tetribodies[i-ioffset]:setMass(bodytodestroy:getMass())
 						tetribodies[i-ioffset]:setAngle(rotation)
-						bodytodestroy:destroy()
+						-- bodytodestroy:destroy()
+						-- body destruction mechanism needs to be reworked
 						for b, c in pairs(tetrifixturescopy) do
 							if shapegroups[b] == a then
 								cotable = getPoints2table(tetrifixturescopy[b]:getShape())
 								for var = 1, #cotable, 2 do
 									cotable[var], cotable[var+1] = tetribodies[i-ioffset]:getLocalPoint(cotable[var], cotable[var+1])
 								end
-								tetrifixtures[i-ioffset][#tetrifixtures[i-ioffset]+1] = love.physics.newPolygonShape(tetribodies[i-ioffset], unpack(cotable))
+								tetrifixtures[i-ioffset][#tetrifixtures[i-ioffset]+1] = love.physics.newFixture(tetribodies[i-ioffset], love.physics.newPolygonShape(unpack(cotable)), 1.0)
 								tetrifixtures[i-ioffset][#tetrifixtures[i-ioffset]]:setUserData({i-ioffset}) --set the shape name for collision
 							end
 						end
@@ -573,7 +575,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 						cutimage(i-ioffset, numberofgroups)
 						
 						--mass confusion
-						tetribodies[i-ioffset]:setMassFromShapes()
+						tetribodies[i-ioffset]:resetMassData()
 						
 						local mass = tetribodies[i-ioffset]:getMass()
 						if mass < minmass then
@@ -581,7 +583,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 								v:setDensity( minmass/mass )
 							end
 							
-							tetribodies[i-ioffset]:setMassFromShapes()
+							tetribodies[i-ioffset]:resetMassData()
 							
 							for i, v in pairs(tetrifixtures[i-ioffset]) do
 								v:setDensity( 1 )
@@ -623,7 +625,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 						cutimage(highestbody(), numberofgroups)
 						
 						--mass confusion
-						tetribodies[highestbody()]:setMassFromShapes()
+						tetribodies[highestbody()]:resetMassData()
 						
 						local mass = tetribodies[highestbody()]:getMass()
 						if mass < minmass then
@@ -631,7 +633,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 								v:setDensity( minmass/mass )
 							end
 							
-							tetribodies[highestbody()]:setMassFromShapes()
+							tetribodies[highestbody()]:resetMassData()
 							
 							for i, v in pairs(tetrifixtures[highestbody()]) do
 								v:setDensity( 1 )
