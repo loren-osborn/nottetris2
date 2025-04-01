@@ -1,3 +1,6 @@
+-- menu.lua (Ported to LÖVE 11.5)
+-- Handles the menu system: loading, drawing, and updating the game’s various menus.
+
 function menu_load()
 	gamestate = "logo"
 	creditstext = {
