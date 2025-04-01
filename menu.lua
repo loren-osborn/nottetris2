@@ -1,25 +1,22 @@
--- menu.lua (Ported to LÖVE 11.5)
--- Handles the menu system: loading, drawing, and updating the game’s various menus.
-
 function menu_load()
 	gamestate = "logo"
 	creditstext = {
-		"'Tm and C2011 sy,not",
-		"tetris 2 licensed to",
-		"  stabyourself.net  ",
-		"         and        ",
-		"  sub-licensed to   ",
-		"      maurice.      ",
-		"                    ",
-		" C2011 stabyourself ",
-		"       dot net.     ",
-		"                    ",
-		"                    ",
-		"all rights reserved.",
-		"                    ",
-		"  original concept, ",
-		" design and program ",
-		"by alexey pazhitnov#"
+	"'Tm and C2011 sy,not",
+	"tetris 2 licensed to",
+	"  stabyourself.net  ",
+	"         and        ",
+	"  sub-licensed to   ",
+	"      maurice.      ",
+	"                    ",
+	" C2011 stabyourself ",
+	"       dot net.     ",
+	"                    ",
+	"                    ",
+	"all rights reserved.",
+	"                    ",
+	"  original concept, ",
+	" design and program ",
+	"by alexey pazhitnov#"
 	}
 	logotime = 0
 	bootsoundplayed = false
@@ -27,202 +24,212 @@ function menu_load()
 end
 
 function menu_draw()
-	-- Apply fullscreen offset if needed.
+	--FULLSCREEN OFFSET
 	if fullscreen then
 		love.graphics.translate(fullscreenoffsetX, fullscreenoffsetY)
 	end
 
-	if gamestate == "logo" then
+	if gamestate == "logo" then		
 		if logotime <= logoduration then
-			love.graphics.draw(stabyourselflogo, 7 * scale, math.floor(-22 * scale + 80 * (logotime / logoduration) * scale), 0, scale, scale)
+			love.graphics.draw(stabyourselflogo, 7*scale, math.floor(-22*scale + 80*(logotime/logoduration)*scale), 0, scale, scale)
 		else
-			love.graphics.draw(stabyourselflogo, 7 * scale, math.floor(58 * scale), 0, scale, scale)
+			love.graphics.draw(stabyourselflogo, 7*scale, math.floor(58*scale), 0, scale, scale)
 		end
 
-	elseif gamestate == "credits" then
+	elseif gamestate == "credits" then------------		
 		for i, v in pairs(creditstext) do
-			love.graphics.print(v, 0, i * 8 * scale, 0, scale)
+			love.graphics.print( v, 0, i*8*scale, 0, scale)
 		end
-		love.graphics.draw(logo, 32 * scale, 80 * scale, 0, scale)
-
-	elseif gamestate == "title" then
+		love.graphics.draw(logo, 32*scale, 80*scale, 0, scale)
+	------------------------------------------
+	
+	elseif gamestate == "title" then----------
 		love.graphics.draw(title, 0, 0, 0, scale)
-		if playerselection == 1 then
-			love.graphics.print(">", 1 * scale, 124 * scale, 0, scale)
-		elseif playerselection == 2 then
-			love.graphics.print(">", 47 * scale, 124 * scale, 0, scale)
-		else
-			love.graphics.print(">", 93 * scale, 124 * scale, 0, scale)
-		end
-
+	if playerselection == 1 then
+		love.graphics.print(">", 1*scale, 124*scale, 0, scale)
+	elseif playerselection == 2 then
+		love.graphics.print(">", 47*scale, 124*scale, 0, scale)
+	else
+		love.graphics.print(">", 93*scale, 124*scale, 0, scale)
+	end
+	------------------------------------------
+	
 	elseif gamestate == "menu" or gamestate == "highscoreentry" then
 		love.graphics.draw(gametype, 0, 0, 0, scale)
 		if selection > 2 then
 			if gameno == 1 then
-				love.graphics.print("normal", 24 * scale, 26 * scale, 0, scale)
+				love.graphics.print( "normal", 24*scale, 26*scale, 0, scale)
 			else
-				love.graphics.print("stack ", 88 * scale, 26 * scale, 0, scale)
+				love.graphics.print( "stack ", 88*scale, 26*scale, 0, scale)
 			end
 		else
 			if musicno == 1 then
-				love.graphics.print("a-type", 24 * scale, 60 * scale, 0, scale)
+				love.graphics.print( "a-type", 24*scale, 60*scale, 0, scale)
 			elseif musicno == 2 then
-				love.graphics.print("b-type", 88 * scale, 60 * scale, 0, scale)
+				love.graphics.print( "b-type", 88*scale, 60*scale, 0, scale)
 			elseif musicno == 3 then
-				love.graphics.print("c-type", 24 * scale, 76 * scale, 0, scale)
+				love.graphics.print( "c-type", 24*scale, 76*scale, 0, scale)
 			else
-				love.graphics.print(" off  ", 88 * scale, 76 * scale, 0, scale)
+				love.graphics.print( " off  ", 88*scale, 76*scale, 0, scale)
 			end
 		end
-
+		
 		if selectblink == true then
-			if selection == 1 then
-				love.graphics.print("normal", 24 * scale, 26 * scale, 0, scale)
+			if selection ==1 then
+				love.graphics.print( "normal", 24*scale, 26*scale, 0, scale)
 			elseif selection == 2 then
-				love.graphics.print("stack ", 88 * scale, 26 * scale, 0, scale)
+				love.graphics.print( "stack ", 88*scale, 26*scale, 0, scale)
 			elseif selection == 3 then
-				love.graphics.print("a-type", 24 * scale, 60 * scale, 0, scale)
+				love.graphics.print( "a-type", 24*scale, 60*scale, 0, scale)
 			elseif selection == 4 then
-				love.graphics.print("b-type", 88 * scale, 60 * scale, 0, scale)
+				love.graphics.print( "b-type", 88*scale, 60*scale, 0, scale)
 			elseif selection == 5 then
-				love.graphics.print("c-type", 24 * scale, 76 * scale, 0, scale)
+				love.graphics.print( "c-type", 24*scale, 76*scale, 0, scale)
 			elseif selection == 6 then
-				love.graphics.print(" off  ", 88 * scale, 76 * scale, 0, scale)
+				love.graphics.print( " off  ", 88*scale, 76*scale, 0, scale)
 			end
 		end
-
+	----------------------------------------------
+	
 	elseif gamestate == "multimenu" then
 		love.graphics.draw(mpmenu, 0, 0, 0, scale)
 		if selection > 2 then
 			if gameno == 1 then
-				love.graphics.print("stack", 28 * scale, 47 * scale, 0, scale)
+				love.graphics.print( "stack", 28*scale, 47*scale, 0, scale)
 			else
-				love.graphics.print("invade", 88 * scale, 47 * scale, 0, scale)
+				love.graphics.print( "invade", 88*scale, 47*scale, 0, scale)
 			end
 		else
 			if musicno == 1 then
-				love.graphics.print("a-type", 24 * scale, 81 * scale, 0, scale)
+				love.graphics.print( "a-type", 24*scale, 81*scale, 0, scale)
 			elseif musicno == 2 then
-				love.graphics.print("b-type", 88 * scale, 81 * scale, 0, scale)
+				love.graphics.print( "b-type", 88*scale, 81*scale, 0, scale)
 			elseif musicno == 3 then
-				love.graphics.print("c-type", 24 * scale, 97 * scale, 0, scale)
+				love.graphics.print( "c-type", 24*scale, 97*scale, 0, scale)
 			else
-				love.graphics.print(" off  ", 88 * scale, 97 * scale, 0, scale)
+				love.graphics.print( " off  ", 88*scale, 97*scale, 0, scale)
 			end
 		end
-
+		
 		if selectblink == true then
-			if selection == 1 then
-				love.graphics.print("stack", 28 * scale, 47 * scale, 0, scale)
+			if selection ==1 then
+				love.graphics.print( "stack", 28*scale, 47*scale, 0, scale)
 			elseif selection == 2 then
-				love.graphics.print("invade", 88 * scale, 47 * scale, 0, scale)
+				love.graphics.print( "invade", 88*scale, 47*scale, 0, scale)
 			elseif selection == 3 then
-				love.graphics.print("a-type", 24 * scale, 81 * scale, 0, scale)
+				love.graphics.print( "a-type", 24*scale, 81*scale, 0, scale)
 			elseif selection == 4 then
-				love.graphics.print("b-type", 88 * scale, 81 * scale, 0, scale)
+				love.graphics.print( "b-type", 88*scale, 81*scale, 0, scale)
 			elseif selection == 5 then
-				love.graphics.print("c-type", 24 * scale, 97 * scale, 0, scale)
+				love.graphics.print( "c-type", 24*scale, 97*scale, 0, scale)
 			elseif selection == 6 then
-				love.graphics.print(" off  ", 88 * scale, 97 * scale, 0, scale)
+				love.graphics.print( " off  ", 88*scale, 97*scale, 0, scale)
 			end
 		end
-
-		-- Win counter display.
+		
+		--win counter
 		if p1wins < 10 then
-			love.graphics.print("0" .. p1wins, 15 * scale, 31 * scale, 0, scale)
+			love.graphics.print( "0"..p1wins, 15*scale, 31*scale, 0, scale)
 		else
-			love.graphics.print(p1wins, 15 * scale, 31 * scale, 0, scale)
+			love.graphics.print( p1wins, 15*scale, 31*scale, 0, scale)
 		end
-
+		
 		if p2wins < 10 then
-			love.graphics.print("0" .. p2wins, 129 * scale, 31 * scale, 0, scale)
+			love.graphics.print( "0"..p2wins, 129*scale, 31*scale, 0, scale)
 		else
-			love.graphics.print(p2wins, 129 * scale, 31 * scale, 0, scale)
+			love.graphics.print( p2wins, 129*scale, 31*scale, 0, scale)
 		end
 	end
-
+	
 	if gamestate == "menu" or gamestate == "highscoreentry" then
 		for i = 1, 3 do
 			if tonumber(highscore[i]) > 0 then
-				-- Draw the highscore name (up to 6 characters)
-				love.graphics.print(string.lower(string.sub(highscorename[i], 1, 6)), 33 * scale, 110 * scale + 8 * scale * (i - 1), 0, scale)
-				-- Calculate offset for score printing.
-				local offsetX = 0
+				--name
+				love.graphics.print(string.lower(string.sub(highscorename[i], 1, 6)), 33*scale, 110*scale+8*scale*(i-1), 0, scale)
+				--score
+				offsetX = 0
 				local scoreStr = tostring(highscore[i]):sub(1, 6)
-				for j = 1, #scoreStr - 1 do
-					offsetX = offsetX - 8 * scale
+				for i = 1, #scoreStr - 1 do
+					offsetX = offsetX - 8*scale
 				end
-				love.graphics.print(scoreStr, 137 * scale + offsetX, 110 * scale + 8 * scale * (i - 1), 0, scale)
+				love.graphics.print(scoreStr, 137*scale+offsetX, 110*scale+8*scale*(i-1), 0, scale)
 			end
 		end
 	end
-
+	
 	if gamestate == "highscoreentry" then
 		if #highscorename[highscoreno] < 6 then
-			local offsetX = 0
+			offsetX = 0
 			for i = 1, #highscorename[highscoreno] do
-				offsetX = offsetX + 8 * scale
+				offsetX = offsetX + 8*scale
 			end
 			if cursorblink == true then
-				love.graphics.print("_", 33 * scale + offsetX, 110 * scale + 8 * scale * (highscoreno - 1), 0, scale)
+				love.graphics.print("_", 33*scale+offsetX, 110*scale+8*scale*(highscoreno-1), 0, scale)
 			else
-				love.graphics.print(" ", 33 * scale + offsetX, 110 * scale + 8 * scale * (highscoreno - 1), 0, scale)
+				love.graphics.print(" ", 33*scale+offsetX, 110*scale+8*scale*(highscoreno-1), 0, scale)
 			end
 		else
 			if cursorblink == true then
-				love.graphics.print("_", 33 * scale + 8 * scale * 5, 110 * scale + 8 * scale * (highscoreno - 1), 0, scale)
+				love.graphics.print("_", 33*scale+8*scale*5, 110*scale+8*scale*(highscoreno-1), 0, scale)
 			end
 		end
 	end
-
+	
 	if gamestate == "options" then
 		love.graphics.draw(optionsmenu, 0, 0, 0, scale, scale)
-		love.graphics.draw(rainbowgradient, 73 * scale, 33 * scale, 0, scale, scale)
-
-		-- Volume slider.
-		love.graphics.draw(volumeslider, 71 * scale + round(76 * volume) * scale, 15 * scale, 0, scale, scale)
-		-- Hue slider.
-		love.graphics.draw(volumeslider, 71 * scale + round(76 * hue * scale), 31 * scale, 0, scale, scale)
-
-		-- Blend out unavailable scales.
+		love.graphics.draw(rainbowgradient, 73*scale, 33*scale, 0, scale, scale)
+		
+		--volume slider
+		love.graphics.draw(volumeslider, 71*scale+round(76*volume)*scale, 15*scale, 0, scale, scale)
+		
+		--hue slider
+		love.graphics.draw(volumeslider, 71*scale+round(76*hue*scale), 31*scale, 0, scale, scale)
+		
+		--blend out unavailable scales
 		for i = 2, 7 do
 			if i > maxscale then
-				love.graphics.print(" ", 75 * scale + (i - 1) * 11 * scale, 50 * scale, 0, scale)
+				love.graphics.print(" ", 75*scale+(i-1)*11*scale, 50*scale, 0, scale)
 			end
 		end
-
-		-- Display current scale (only when windowed).
-		if not fullscreen then
-			love.graphics.print(scale, 75 * scale + (scale - 1) * 11 * scale, 50 * scale, 0, scale)
+		
+		--current scale
+		if fullscreen == false then
+			love.graphics.print(scale, 75*scale+(scale-1)*11*scale, 50*scale, 0, scale)
 		end
-
-		-- Fullscreen option display.
+		
+		--fullscreen
 		if fullscreen then
-			love.graphics.print("yes", 96 * scale, 66 * scale, 0, scale)
+			love.graphics.print("yes", 96*scale, 66*scale, 0, scale)
 		else
-			love.graphics.print("no", 133 * scale, 66 * scale, 0, scale)
+			love.graphics.print("no", 133*scale, 66*scale, 0, scale)
 		end
-
+		
+		
 		if selectblink then
-			love.graphics.print(optionschoices[optionsselection], 19 * scale, 18 * scale + (optionsselection - 1) * 16 * scale, 0, scale)
+			love.graphics.print(optionschoices[optionsselection], 19*scale, 18*scale+(optionsselection-1)*16*scale, 0, scale)
 		end
-	end
 
-	-- Reset fullscreen offset and scissor.
-	if fullscreen then
-		love.graphics.translate(-fullscreenoffsetX, -fullscreenoffsetY)
-		love.graphics.setScissor()
+		-- Reset fullscreen offset and scissor.
+		if fullscreen then
+			love.graphics.translate(-fullscreenoffsetX, -fullscreenoffsetY)
+			love.graphics.setScissor()
+		end
+		
 	end
+	------------------------------------------
 end
 
 function menu_update(dt)
 	if gamestate == "logo" then
 		logotime = logotime + dt
-		if logotime >= logoduration and not bootsoundplayed then
+		
+		if logotime >= logoduration and bootsoundplayed == false then			
 			love.audio.stop(boot)
 			love.audio.play(boot)
+			
 			bootsoundplayed = true
 		end
+		
 		if logotime >= logoduration + logodelay then
 			oldtime = love.timer.getTime()
 			gamestate = "credits"
@@ -230,54 +237,54 @@ function menu_update(dt)
 	end
 
 	if gamestate == "credits" then
-		local currenttime = love.timer.getTime()
+		currenttime = love.timer.getTime()
 		if currenttime - oldtime > creditsdelay then
 			gamestate = "title"
-			love.graphics.setBackgroundColor(0, 0, 0)
+			love.graphics.setBackgroundColor( 0, 0, 0)
 			love.audio.play(musictitle)
 		end
 	end
-
+	
 	if gamestate == "menu" or gamestate == "multimenu" or gamestate == "options" then
-		local currenttime = love.timer.getTime()
+		currenttime = love.timer.getTime()
 		if currenttime - oldtime > selectblinkrate then
 			selectblink = not selectblink
 			oldtime = currenttime
 		end
 	end
-
+	
 	if gamestate == "options" then
 		if optionsselection == 2 then
 			if love.keyboard.isDown("left") then
 				if hue > 0 then
-					hue = hue - 0.5 * dt
-					if hue < 0 then hue = 0 end
-					optionsmenu = newPaddedImage("graphics/options.png")
-					optionsmenu:setFilter("nearest", "nearest")
-					volumeslider = newPaddedImage("graphics/volumeslider.png")
-					volumeslider:setFilter("nearest", "nearest")
+					hue = hue - 0.5*dt
+					if hue < 0 then
+						hue = 0
+					end
+					optionsmenu = newPaddedImage("graphics/options.png");optionsmenu:setFilter( "nearest", "nearest" )
+					volumeslider = newPaddedImage("graphics/volumeslider.png");volumeslider:setFilter( "nearest", "nearest" )
 				end
 			elseif love.keyboard.isDown("right") then
 				if hue < 1 then
-					hue = hue + 0.5 * dt
-					if hue > 1 then hue = 1 end
-					optionsmenu = newPaddedImage("graphics/options.png")
-					optionsmenu:setFilter("nearest", "nearest")
-					volumeslider = newPaddedImage("graphics/volumeslider.png")
-					volumeslider:setFilter("nearest", "nearest")
+					hue = hue + 0.5*dt
+					if hue > 1 then
+						hue = 1
+					end
+					optionsmenu = newPaddedImage("graphics/options.png");optionsmenu:setFilter( "nearest", "nearest" )
+					volumeslider = newPaddedImage("graphics/volumeslider.png");volumeslider:setFilter( "nearest", "nearest" )
 				end
 			end
 		end
 	end
-
+	
 	if gamestate == "highscoreentry" then
-		local currenttime = love.timer.getTime()
+		currenttime = love.timer.getTime()
 		if currenttime - oldtime > cursorblinkrate then
 			cursorblink = not cursorblink
 			oldtime = currenttime
 		end
 		if currenttime - highscoremusicstart > 1.2 then
-			if not musicchanged then
+			if musicchanged == false then
 				musicchanged = true
 				love.audio.stop(highscoreintro)
 				love.audio.play(musichighscore)
