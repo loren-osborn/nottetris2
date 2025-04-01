@@ -1,3 +1,37 @@
+
+do -- This is temporary code added to ensure any attempts to access getUserData() directly fail with a clean error message how to fix the code.
+   -- once the port is complete, be sure to remove this fixture proxy.
+  function wrapFixture(fixture)
+    local proxy = { _raw = fixture }
+    setmetatable(proxy, {
+      __index = function(tbl, key)
+        if type(key) == "number" then
+          error("Direct indexing of a physics fixture is not allowed; use getUserData() instead", 2)
+        end
+        -- Forward method calls: Look up the key in the raw fixture.
+        local value = fixture[key]
+        if type(value) == "function" then
+          -- Return a function that calls the raw function with the raw fixture as its self.
+          return function(_, ...)
+            return value(fixture, ...)
+          end
+        else
+          return value
+        end
+      end,
+      __newindex = function(tbl, key, value)
+        error("Attempt to write to a wrapped physics fixture", 2)
+      end
+    })
+    return proxy
+  end
+  local realNewFixture = love.physics.newFixture
+  function love.physics.newFixture(body, shape, density, ...)
+    local fixture = realNewFixture(body, shape, density, ...)
+    return wrapFixture(fixture)
+  end
+end
+
 function love.load()
 	--requires--
 	require "controls"
