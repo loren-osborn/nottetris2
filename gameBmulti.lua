@@ -1,3 +1,6 @@
+-- gameBmulti.lua (Ported to LÖVE 11.5)
+-- Handles the multiplayer (gameBmulti) mode.
+
 function gameBmulti_load()
 	if musicno < 4 then
 		love.audio.stop(music[musicno])
