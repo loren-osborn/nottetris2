@@ -1,3 +1,5 @@
+-- main.lua (Ported to LÖVE 11.5)
+--
 
 do -- This is temporary code added to ensure any attempts to access getUserData() directly fail with a clean error message how to fix the code.
    -- once the port is complete, be sure to remove this fixture proxy.
@@ -52,7 +54,7 @@ do -- This is temporary code added to ensure any attempts to access getUserData(
 end
 
 function love.load()
-	--requires--
+	-- requires --
 	require "controls"
 	require "gameB"
 	require "gameBmulti"
@@ -99,11 +101,11 @@ function love.load()
 	
 	physicsscale = scale/4
 	
-	--pieces--
+	-- pieces --
 	tetriimages = {}
 	tetriimagedata = {}
 	
-	--SOUND--
+	-- SOUND --
 	music = {}
 	
 	music[1] = love.audio.newSource( "sounds/themeA.ogg", "stream")
@@ -161,11 +163,11 @@ function love.load()
 	
 	changevolume(volume)
 	
-	--IMAGES THAT WON'T CHANGE HUE:
+	-- IMAGES THAT WON'T CHANGE HUE:
 	rainbowgradient = love.graphics.newImage("graphics/rainbow.png")
 	rainbowgradient:setFilter("nearest", "nearest")
 	
-	--Whitelist for highscorenames--
+	-- Whitelist for highscorenames --
 	whitelist = {}
 	for i = 48, 57 do -- 0 - 9
 		whitelist[i] = true
@@ -173,7 +175,7 @@ function love.load()
 	for i = 65, 90 do -- A - Z
 		whitelist[i] = true
 	end
-	for i = 97, 122 do --a - z
+	for i = 97, 122 do -- a - z
 		whitelist[i] = true
 	end
 	whitelist[32] = true -- space
@@ -185,7 +187,7 @@ function love.load()
 	-----------------------------
 	
 	math.randomseed( os.time() )
-	math.random();math.random();math.random() --discarding some as they seem to tend to unrandomness.
+	math.random();math.random();math.random() -- discarding some as they seem to tend to unrandomness.
 	
 	love.graphics.setBackgroundColor( 1, 1, 1 )
 
@@ -203,23 +205,23 @@ function love.load()
 	selectblink = true
 	cursorblink = true
 	playerselection = 1
-	musicno = 1 --
-	gameno = 1 --
-	selection = 1 --
-	colorizeduration = 3 --seconds
-	lineclearduration = 1.2 --seconds
-	lineclearblinks = 7 --i
-	linecleartreshold = 8.1 --in blocks
-	densityupdateinterval = 1/30 --in seconds
-	nextpiecerotspeed = 1 --rad per seconnd
-	minfps = 1/50 --dt doesn't go higher than this
+	musicno = 1
+	gameno = 1
+	selection = 1
+	colorizeduration = 3 -- seconds
+	lineclearduration = 1.2 -- seconds
+	lineclearblinks = 7 -- i
+	linecleartreshold = 8.1 -- in blocks
+	densityupdateinterval = 1/30 -- in seconds
+	nextpiecerotspeed = 1 -- rad per seconnd
+	minfps = 1/50 -- dt doesn't go higher than this
 	scoreaddtime = 0.5
 	startdelaytime = 0
 	density = 0.1
 	
-	blockstartY = -64 --where new blocks are created
-	losingY = 0 --lose if block 1 collides above this line
-	blockmass = 5 --probably obsolete because body:setMassFromShapes()
+	blockstartY = -64 -- where new blocks are created
+	losingY = 0 -- lose if block 1 collides above this line
+	blockmass = 5 -- probably obsolete because body:setMassFromShapes()
 	blockrot = 10
 	blockrestitution = 0.1
 	minmass = 1
@@ -249,7 +251,7 @@ function love.load()
 	
 	loadimages()
 	
-	--all done!
+	-- all done!
 	if startdelay == 0 then
 		menu_load()
 	end
@@ -260,8 +262,8 @@ function start()
 end
 
 function loadimages()
-	--IMAGES--
-	--menu--
+	-- IMAGES --
+	-- menu --
 	stabyourselflogo = newPaddedImage("graphics/stabyourselflogo.png")
 	logo = newPaddedImage("graphics/logo.png")
 	title = newPaddedImage("graphics/title.png")
@@ -269,7 +271,7 @@ function loadimages()
 	mpmenu = newPaddedImage("graphics/mpmenu.png")
 	optionsmenu = newPaddedImage("graphics/options.png")
 	volumeslider = newPaddedImage("graphics/volumeslider.png")
-	--game--
+	-- game --
 	gamebackground = newPaddedImage("graphics/gamebackground.png")
 	gamebackgroundcutoff = newPaddedImage("graphics/gamebackgroundgamea.png")
 	gamebackgroundmulti = newPaddedImage("graphics/gamebackgroundmulti.png")
@@ -284,7 +286,7 @@ function loadimages()
 	pausegraphic = newPaddedImage("graphics/pause.png")
 	pausegraphiccutoff = newPaddedImage("graphics/pausecutoff.png")
 	
-	--figures--
+	-- figures --
 	marioidle = newPaddedImage("graphics/versus/marioidle.png")
 	mariojump = newPaddedImage("graphics/versus/mariojump.png")
 	mariocry1 = newPaddedImage("graphics/versus/mariocry1.png")
@@ -295,7 +297,7 @@ function loadimages()
 	luigicry1 = newPaddedImage("graphics/versus/luigicry1.png")
 	luigicry2 = newPaddedImage("graphics/versus/luigicry2.png")
 	
-	--rockets--
+	-- rockets --
 	rocket1 = newPaddedImage("graphics/rocket1.png");rocket1:setFilter( "nearest", "nearest" )
 	rocket2 = newPaddedImage("graphics/rocket2.png")
 	rocket3 = newPaddedImage("graphics/rocket3.png")
@@ -318,18 +320,18 @@ function loadimages()
 	
 	congratsline = newPaddedImage("graphics/congratsline.png")
 	
-	--nextpiece
+	-- nextpiece
 	nextpieceimg = {}
 	for i = 1, 7 do
 		nextpieceimg[i] = newPaddedImage( "graphics/pieces/"..i..".png", scale )
 	end
 	
-	--font--
+	-- font --
 	tetrisfont = newPaddedImageFont("graphics/font.png", "0123456789abcdefghijklmnopqrstTuvwxyz.,'C-#_>:<! ")
 	whitefont = newPaddedImageFont("graphics/fontwhite.png", "0123456789abcdefghijklmnopqrstTuvwxyz.,'C-#_>:<!+ ")
 	love.graphics.setFont(tetrisfont)
 	
-	--filters!
+	-- filters!
 	stabyourselflogo:setFilter("nearest", "nearest")
 	logo:setFilter( "nearest", "nearest" )
 	title:setFilter( "nearest", "nearest" )
@@ -439,12 +441,12 @@ function newImageData(path, s)
 			local oldr, oldg, oldb, olda = imagedata:getPixel(x, y)
 			
 			if olda ~= 0 then
-				if oldr > (203/255) and oldr < (213/255) then --lightgrey
+				if oldr > (203/255) and oldr < (213/255) then -- lightgrey
 					local r = (145 + rr*64)/255
 					local g = (145 + rg*64)/255
 					local b = (145 + rb*64)/255
 					imagedata:setPixel(x, y, r, g, b, olda)
-				elseif oldr > (107/255) and oldr < (117/255) then --darkgrey
+				elseif oldr > (107/255) and oldr < (117/255) then -- darkgrey
 					local r = (73 + rr*43)/255
 					local g = (73 + rg*43)/255
 					local b = (73 + rb*43)/255
@@ -480,7 +482,7 @@ function newPaddedImage(filename, s)
     return love.graphics.newImage(source)
 end
 
-function padImagedata(source) --returns image, not imagedata!
+function padImagedata(source) -- returns image, not imagedata!
     local w, h = source:getWidth(), source:getHeight()
    
     -- Find closest power-of-two.
@@ -590,7 +592,7 @@ function loadoptions()
 			local split2 = split1[i]:split("=")
 			if split2[1] == "volume" then
 				local v = tonumber(split2[2])
-				--clamp and round
+				-- clamp and round
 				if v < 0 then
 					v = 0
 				elseif v > 1 then
@@ -1163,9 +1165,9 @@ function love.keypressed( key, unicode )
 			end
 			
 			if pause == false and (cuttingtimer == lineclearduration or gamestate == "gameB") then
-				--if key == "up" then --STOP ROTATION OF BLOCK (makes it too easy..)
-				--	tetribodies[counter]:setAngularVelocity(0)
-				--end
+				-- if key == "up" then -- STOP ROTATION OF BLOCK (makes it too easy..)
+				-- 	tetribodies[counter]:setAngularVelocity(0)
+				-- end
 				if controls.check("left", key) or controls.check("right", key) then
 					love.audio.stop(blockmove)
 					love.audio.play(blockmove)
