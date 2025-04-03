@@ -1,7 +1,14 @@
 
 do -- This is temporary code added to ensure any attempts to access getUserData() directly fail with a clean error message how to fix the code.
    -- once the port is complete, be sure to remove this fixture proxy.
+  local function isFixture(obj)
+    return type(obj) == "userdata" and obj.getUserData and type(obj.getUserData) == "function"
+  end
+
   function wrapFixture(fixture)
+    if not isFixture(fixture) then
+      return fixture
+    end
     local proxy = { _raw = fixture }
     setmetatable(proxy, {
       __index = function(tbl, key)
@@ -21,11 +28,23 @@ do -- This is temporary code added to ensure any attempts to access getUserData(
       end,
       __newindex = function(tbl, key, value)
         error("Attempt to write to a wrapped physics fixture", 2)
+      -- end,
+      -- -- This does not seem to work in catching comparison to a string.
+      -- __toString = function()
+      --   error("Attempt to convert fixture to a string", 2)
       end
     })
     return proxy
   end
   local realNewFixture = love.physics.newFixture
+
+  function wrapCollisionFunction(myCollisionCallback)
+    return function(a, b, contact)
+      -- Only wrap a and b (fixtures), not contact objects.
+      return myCollisionCallback(wrapFixture(a), wrapFixture(b), contact)
+    end
+  end
+
   function love.physics.newFixture(body, shape, density, ...)
     local fixture = realNewFixture(body, shape, density, ...)
     return wrapFixture(fixture)

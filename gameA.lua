@@ -44,7 +44,11 @@ function gameA_load()
 	wallfixtures[3] = love.physics.newFixture(wallbodies, love.physics.newPolygonShape(-8,-96, 384,-96, 384,-64, -8,-64), 1.0)
 	wallfixtures[3]:setUserData({"ceiling"})
 	
-	world:setCallbacks(collideA)
+	-- **FIXME** This is temporary... restore when indexing into
+	-- fixtures is erradicated.
+	world:setCallbacks(wrapCollisionFunction(collideA))
+	-- This should instead be:
+	-- world:setCallbacks(collideA)
 	-----------
 	
 	--FIRST "nextpiece"-
@@ -1172,8 +1176,11 @@ function collideA(a, b, coll) --box2d callback. calls endblock.
 		return
 	end
 	
+	-- This is to test that the fixture proxies are working correctly:
+    -- if a[1] == 1 or b[1] == 1 then
+    --   if a[1] ~= "left" and a[1] ~= "right" and b[1] ~= "left" and b[1] ~= "right" then
 	if (a:getUserData() or {})[1] == 1 or (b:getUserData() or {})[1] == 1 then
-		if (a:getUserData() or {})[1] ~= "left" and (a:getUserData() or {})[1] ~= "right" and (b:getUserData() or {})[1] ~= "left" and (b:getUserData() or {})[1] ~= "right" then
+	  if (a:getUserData() or {})[1] ~= "left" and (a:getUserData() or {})[1] ~= "right" and (b:getUserData() or {})[1] ~= "left" and (b:getUserData() or {})[1] ~= "right" then
 			if gamestate == "gameA" then
 				if tetribodies[1]:getY() < losingY then
 					gamestate = "failingA"

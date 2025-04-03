@@ -46,7 +46,11 @@ function gameB_load()
 	wallfixtures[3] = love.physics.newFixture(wallbodies, wallshapes[3])
 	wallfixtures[3]:setUserData("ceiling")
 	
-	world:setCallbacks(collideB)
+	-- **FIXME** This is temporary... restore when indexing into
+	-- fixtures is erradicated.
+	world:setCallbacks(wrapCollisionFunction(collideB))
+	-- This should instead be:
+	-- world:setCallbacks(collideB)
 	-----------
 	
 	--FIRST "nextpiece"-

@@ -104,7 +104,11 @@ function gameBmulti_load()
 	wallfixturesp2[2] = love.physics.newFixture(wallbodiesp2, love.physics.newPolygonShape( 516,640, 516,672, 836,672, 836,640), 1.0)
 	wallfixturesp2[2]:setUserData("groundp2")
 	-----------	
-	world:setCallbacks(collideBmulti)
+	-- **FIXME** This is temporary... restore when indexing into
+	-- fixtures is erradicated.
+	world:setCallbacks(wrapCollisionFunction(collideBmulti))
+	-- This should instead be:
+	-- world:setCallbacks(collideBmulti)
 	-----------
 	
 	randomtable[1] = math.random(7)
@@ -712,18 +716,18 @@ function createtetriBmultip2(i, uniqueid, x, y)
 end
 
 function collideBmulti(a, b)
-	if (a == "p1-"..counterp1 and b ~= "p2-"..counterp2) or (b == "p1-"..counterp1 and b ~= "p2-"..counterp2) then --One of the pieces is the current piece and the other isn't the other player's one
-		if p1fail == false and a ~= "leftp1" and a ~= "rightp1" and b ~= "leftp1" and b ~= "rightp1" then 
+	if (a:getUserData() == "p1-"..counterp1 and b:getUserData() ~= "p2-"..counterp2) or (b:getUserData() == "p1-"..counterp1 and b:getUserData() ~= "p2-"..counterp2) then --One of the pieces is the current piece and the other isn't the other player's one
+		if p1fail == false and a:getUserData() ~= "leftp1" and a:getUserData() ~= "rightp1" and b:getUserData() ~= "leftp1" and b:getUserData() ~= "rightp1" then
 			endblockp1()
 		end
-	elseif (a == "p2-"..counterp2 and b ~= "p1-"..counterp1) or (b == "p2-"..counterp2 and a ~= "p1-"..counterp1) then
-		if p2fail == false and a ~= "leftp2" and a ~= "rightp2" and b ~= "leftp2" and b ~= "rightp2" then 
+	elseif (a:getUserData() == "p2-"..counterp2 and b:getUserData() ~= "p1-"..counterp1) or (b:getUserData() == "p2-"..counterp2 and a:getUserData() ~= "p1-"..counterp1) then
+		if p2fail == false and a:getUserData() ~= "leftp2" and a:getUserData() ~= "rightp2" and b:getUserData() ~= "leftp2" and b:getUserData() ~= "rightp2" then
 			endblockp2()
 		end
 	elseif gamestate == "gameBmulti_results" then
-		if (a == "mario" and b == "resultsfloor") or (b == "mario" and a == "resultsfloor") then
+		if (a:getUserData() == "mario" and b:getUserData() == "resultsfloor") or (b:getUserData() == "mario" and a:getUserData() == "resultsfloor") then
 			jumpframe = false
-		elseif (a == "luigi" and b == "resultsfloor") or (b == "luigi" and a == "resultsfloor") then
+		elseif (a:getUserData() == "luigi" and b:getUserData() == "resultsfloor") or (b:getUserData() == "luigi" and a:getUserData() == "resultsfloor") then
 			jumpframe = false
 		end
 	end
