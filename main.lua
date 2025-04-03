@@ -1268,3 +1268,33 @@ function love.textinput(t)
         end
     end
 end
+
+--[[
+  ================================
+  Unit Tests for Utility Functions
+  (Runs only when not running in LÖVE)
+  ================================
+--]]
+if not love then
+    local function assertEqual(a, b, msg)
+        if a ~= b then
+            error(msg .. ": expected " .. tostring(b) .. ", got " .. tostring(a))
+        end
+    end
+
+    -- Test string:split
+    local parts = ("a,b,c"):split(",")
+    assertEqual(#parts, 3, "string.split failed")
+    assertEqual(parts[1], "a", "string.split failed (element 1)")
+    assertEqual(parts[2], "b", "string.split failed (element 2)")
+    assertEqual(parts[3], "c", "string.split failed (element 3)")
+
+    -- Test round
+    assertEqual(round(3.14159, 2), 3.14, "round failed")
+
+    -- Test pythagoras
+    local p = pythagoras(3, 4)
+    assertEqual(p, 5, "pythagoras failed")
+
+    print("All tests passed.")
+end
