@@ -1,205 +1,82 @@
-# Basics:
 
-BLANK :=
-SPACE := $(BLANK) $(BLANK)
-TAB := $(BLANK)	$(BLANK)
-OPEN_PAREN := (
-CLOSE_PAREN := )
-COMMA := ,
-DOLLARS := $$
+PSEUDO_TARGETS := install_tools skip_mac skip_windows skip_linux use_self_signed_cert binaries_only
 
-define NEWLINE
+include utils.mk
 
-
-endef
-
-# @brief List of pseudo targets.
-#
-# Pseudo targets are targets that act purely like modal flags without any build steps or dependencies.
-# They function as boolean command line options. The complete list of pseudo targets should be defined
-# in the main makefile; here, we add 'debug' to support debugging functionality.
-PSEUDO_TARGETS := $(sort $(PSEUDO_TARGETS) debug)
-
-# @brief Asserts that specified target(s) exist in the pseudo-targets list.
-# 
-# This macro checks whether the given target(s) (passed as the first argument)
-# are present in the global PSEUDO_TARGETS list. If any target is missing, it triggers a make error.
-#
-# @param 1 The target or list of targets to validate against PSEUDO_TARGETS.
-ASSERT_PSEUDO_TARGETS = $(if $(strip $(filter-out $(1),$(PSEUDO_TARGETS))),$(error $(filter-out $(1),$(PSEUDO_TARGETS)) is/are not in $$(PSEUDO_TARGETS). Please add them.),)
-
-# @brief Checks if a pseudo target is present among the make command goals.
-# 
-# This macro ensures that the specified target (provided as the first argument)
-# is both defined in PSEUDO_TARGETS and included in the current make command goals.
-#
-# @param 1 The pseudo target to check.
-# @return The target name if present; otherwise, it triggers an error.
-HAS_PSEUDO_TARGET = $(call ASSERT_PSEUDO_TARGETS,$(1))$(filter $(1),$(MAKECMDGOALS))
-
-# @brief Defines or updates a variable and optionally logs the assignment for debugging.
-# 
-# This macro conditionally defines a variable with a given value. If the 'debug' pseudo target is active,
-# it issues a warning that logs the variable's name and the assignment details to help track variable assignments.
-# The assignment operator defaults to ':=' if not specified.
-#
-# @param 1 The name of the variable to define.
-# @param 2 The value to assign to the variable.
-# @param 3 (Optional) The assignment operator (e.g., '=' or ':='); defaults to ':='.
-DEFINE_VAR = $(if $(call HAS_PSEUDO_TARGET,debug),$(warning $(1)$(if $(3),$(3),:=)$(2)),)$(eval $(NEWLINE)$(1)$(if $(3),$(3),:=)$(2)$(NEWLINE))
-
-# @brief Test variable used to track function increments.
-#
-# This variable is used to verify that macros such as DEFINE_VAR and LAZY_DEFINE_VAR properly
-# update and increment variable values. It serves as a test mechanism to ensure the correctness
-# of variable assignments during debugging.
-TEST_FN_INCREMENT = $(words $(TEST_FN_INCREMENT__INTERNAL_ACC))$(call DEFINE_VAR,TEST_FN_INCREMENT__INTERNAL_ACC,X,+=)
-
-# @brief Asserts equality between an actual value and an expected value.
-#
-# This macro defines an assertion by comparing the actual value (provided as the first argument)
-# to the expected value (second argument). If they do not match, it produces a make error,
-# optionally including a custom error message.
-#
-# @param 1 The actual value or expression to test.
-# @param 2 The expected value.
-# @param 3 (Optional) A custom error message to display if the assertion fails.
-ASSERT_EQ = $(call DEFINE_VAR,ASSERT_EQ__INTERNAL_ACTUAL,$(1),:=)$\
-	$(call DEFINE_VAR,ASSERT_EQ__INTERNAL_EXPRESSION,$(subst $(DOLLARS),$(DOLLARS)$(DOLLARS),$(1)),:=)$\
-	$(eval $(NEWLINE)ifneq ($(subst _,_us_,$(subst $(SPACE),_sp_,$(ASSERT_EQ__INTERNAL_ACTUAL))),$(subst _,_us_,$(subst $(SPACE),_sp_,$(2))))$(NEWLINE)$\
-	$(DOLLARS)(error Value of $(DOLLARS)(ASSERT_EQ__INTERNAL_EXPRESSION) ("$(ASSERT_EQ__INTERNAL_ACTUAL)") expected to be "$(2)": $(if $(3),$(3),Assertion failed))$(NEWLINE)$\
-	endif$(NEWLINE))
-
-# First test TEST_FN_INCREMENT:
-$(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),0)
-$(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),1)
-
-# Now test DEFINE_VAR:
-$(call DEFINE_VAR,TEST__DEFINE_VAR__1, $(DOLLARS)(TEST_FN_INCREMENT))
-$(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),3)
-$(call ASSERT_EQ,$(DOLLARS)(TEST__DEFINE_VAR__1),2)
-$(call DEFINE_VAR,TEST__DEFINE_VAR__2, $(DOLLARS)(TEST_FN_INCREMENT),:=)
-$(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),5)
-$(call ASSERT_EQ,$(DOLLARS)(TEST__DEFINE_VAR__2),4)
-$(call DEFINE_VAR,TEST__DEFINE_VAR__3, $(DOLLARS)(TEST_FN_INCREMENT),=)
-$(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),6)
-$(call ASSERT_EQ,$(DOLLARS)(TEST__DEFINE_VAR__3),7)
-$(call ASSERT_EQ,$(DOLLARS)(TEST__DEFINE_VAR__3),8)
-
-# @brief Lazily defines a variable, deferring its evaluation.
-#
-# This macro delays the evaluation of a variable's value by wrapping a call to DEFINE_VAR.
-# It is useful when the variable's value might change and should be computed at a later time.
-#
-# @param 1 The name of the variable to define.
-# @param 2 The lazily evaluated value to assign to the variable.
-# @param 3 (Optional) The assignment operator (e.g., '=' or ':='); defaults to ':='.
-LAZY_DEFINE_VAR = $(call \
-	DEFINE_VAR,$\
-	$(1),$\
-	$(DOLLARS)(call $\
-		DEFINE_VAR$(COMMA)$\
-		$(1)$(COMMA)$\
-		$(subst \
-			$(DOLLARS),$\
-			$(DOLLARS)$(DOLLARS),$\
-			$(subst \
-				$(COMMA),$\
-				$(DOLLARS)$(COMMA),$\
-				$(2)$\
-			)$\
-		)$(COMMA)$\
-		$(if $(3),$(3),:=)$\
-	)$(DOLLARS)($(1)),=)
-
-# Now test 
-$(call LAZY_DEFINE_VAR,TEST__LAZY_DEFINE_VAR__1,$(DOLLARS)(TEST_FN_INCREMENT))
-$(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),9)
-$(call ASSERT_EQ,$(DOLLARS)(TEST__LAZY_DEFINE_VAR__1),10)
-$(call ASSERT_EQ,$(DOLLARS)(TEST__LAZY_DEFINE_VAR__1),10)
-$(call ASSERT_EQ,$(DOLLARS)(TEST__LAZY_DEFINE_VAR__1),10)
-$(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),11)
-
-# @brief Extracts a specific field from each blob in a list.
-# 
-# This macro iterates over a list of blobs (each blob containing colon‑separated fields)
-# and extracts the field specified by the first argument.
-#
-# @param 1 The field number to extract (1‑indexed).
-# @param 2 A list of blobs where each blob is a string with fields separated by colons.
-# @return A space‑separated list of the extracted fields.
-GET_FIELD_FROM_BLOBS = $(foreach blob,$(2),$(word $(1),$(subst :,$(SPACE),$(blob))))
-
-$(call ASSERT_EQ,$(DOLLARS)(call GET_FIELD_FROM_BLOBS,3,a:b:c d e:f:g:h i:j:k:l:m n:o),c  g k )
-
-UC_LC_LETTER_PAIRS := A:a B:b C:c D:d E:e F:f G:g H:h I:i J:j K:k L:l M:m N:n O:o P:p Q:q R:r S:s T:t U:u V:v W:w X:x Y:y Z:z
-
-# @brief Converts a given string to lowercase.
-#
-# This macro converts all uppercase characters in the input string (passed as the first argument)
-# to their lowercase equivalents by applying a series of substitution rules.
-#
-# @param 1 The input string to convert to lowercase.
-# @return The converted lowercase string.
-$(call DEFINE_VAR,TO_LOWER,$(subst $(COMMA)$(SPACE)$(DOLLARS),$(COMMA)$(DOLLARS),$(foreach pair,$(UC_LC_LETTER_PAIRS),$(DOLLARS)$(OPEN_PAREN)subst $(call GET_FIELD_FROM_BLOBS,1,$(pair))$(COMMA)$(call GET_FIELD_FROM_BLOBS,2,$(pair))$(COMMA)))$(DOLLARS)(1)$(subst $(SPACE),,$(foreach pair,$(UC_LC_LETTER_PAIRS),$(CLOSE_PAREN))),=)
-$(call ASSERT_EQ,$(DOLLARS)(call TO_LOWER,The Quick broWN FOX),the quick brown fox)
-
-# @brief Converts a given string to uppercase.
-#
-# This macro converts all lowercase characters in the input string (passed as the first argument)
-# to their uppercase equivalents by applying a series of substitution rules.
-#
-# @param 1 The input string to convert to uppercase.
-# @return The converted uppercase string.
-$(call DEFINE_VAR,TO_UPPER,$(subst $(COMMA)$(SPACE)$(DOLLARS),$(COMMA)$(DOLLARS),$(foreach pair,$(UC_LC_LETTER_PAIRS),$(DOLLARS)$(OPEN_PAREN)subst $(call GET_FIELD_FROM_BLOBS,2,$(pair))$(COMMA)$(call GET_FIELD_FROM_BLOBS,1,$(pair))$(COMMA)))$(DOLLARS)(1)$(subst $(SPACE),,$(foreach pair,$(UC_LC_LETTER_PAIRS),$(CLOSE_PAREN))),=)
-$(call ASSERT_EQ,$(DOLLARS)(call TO_UPPER,jumps Over the lazy DOG),JUMPS OVER THE LAZY DOG)
-
-$(error Stop here!)
-
-ALL_LETTERS := A:a B:b C:c D:d E:e F:f G:g H:h I:i J:j K:k L:l M:m N:n O:o P:p Q:q R:r S:s T:t U:u V:v W:w X:x Y:y Z:z
-TO_LOWER = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$(1)))))))))))))))))))))))))))
-TO_UPPER = $(subst a,A,$(subst b,B,$(subst c,C,$(subst d,D,$(subst e,E,$(subst f,F,$(subst g,G,$(subst h,H,$(subst i,I,$(subst j,J,$(subst k,K,$(subst l,L,$(subst m,M,$(subst n,N,$(subst o,O,$(subst p,P,$(subst q,Q,$(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,$(subst x,X,$(subst y,Y,$(subst z,Z,$(1)))))))))))))))))))))))))))
-
-
-UNAME_S := $(shell \
-	if [ "$$OS" = "Windows_NT" ] ; then \
-		echo Windows ; \
-	else \
-		command -v uname > /dev/null && \
-			uname -s ; \
-	fi\
-)
-# OS_TYPE will be one of: "Windows", "macOS", "Unix/Linux", or "Unknown"
-OS_TYPE := $(if \
-	$(filter \
-		Darwin Windows,$\
-		$(UNAME_S)$\
-	),$\
-	$(subst Darwin,macOS,$(UNAME_S)),$\
-	$(if \
-		$(strip \
-			$(findstring MINGW,$(UNAME_S) $(findstring MSYS,$(UNAME_S) $(findstring CYGWIN,$(UNAME_S))$\
-		),$\
-		Windows,$\
-		$(if $(UNAME_S),Unix/Linux,Unknown)$\
-	)$\
-)
-ifeq($(OS_TYPE),Unknown)
+ifeq ($(OS_TYPE),Unknown)
 	$(error I'm unable to detect your OS type! Aborting.)
 endif
 
 
 
 # Game Settings
-GAME_NAME := Not Tetris 2
-GAME_NAME_NOSPACES := $(subst $(SPACE),,$(GAME_NAME))
+GAME_NAME                := Not Tetris 2
+GAME_NAME_NOSPACES       := $(subst $(SPACE),,$(GAME_NAME))
 GAME_NAME_LOWER_NOSPACES := $(call TO_LOWER,$(GAME_NAME_NOSPACES))
-VERSION := 2.1
-IDENTIFIER := net.stabyourself.nottetris2
-BUILD_DIR := build
-DIST_DIR := dist
-SOURCE_DIR := src
-LOVE_FILE := $(BUILD_DIR)/$(GAME_NAME_LOWER_NOSPACES).love
+VERSION                  := 2.1
+REQUIRED_LOVE_VERSION    := 11.5
+IDENTIFIER               := net.stabyourself.nottetris2
+BUILD_DIR                := build
+DIST_DIR                 := dist
+SOURCE_DIR               := src
+LOVE_FILE                := $(BUILD_DIR)/$(GAME_NAME_LOWER_NOSPACES).love
+
+PLATFORMS_TO_BUILD := $(filter-out $(patsubst skip_%,%,$(call HAS_PSEUDO_TARGET,$(filter skip_%,$(PSEUDO_TARGETS)))),mac windows linux)
+
+BINARIES_TO_BUILD := $(strip \
+	$(if \
+		$(filter mac,$(PLATFORMS_TO_BUILD)),$\
+		$(BUILD_DIR)/bin/$(subst $(SPACE),$(DOLLARS)(SPACE),$(call TO_TITLE_CASE_WORDS,$(GAME_NAME))).app,$\
+		$\
+	) \
+	$(if \
+		$(filter windows,$(PLATFORMS_TO_BUILD)),$\
+		$(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME)).exe,$\
+		$\
+	) \
+	$(if \
+		$(filter linux,$(PLATFORMS_TO_BUILD)),$\
+		$(BUILD_DIR)/bin/$(GAME_NAME_LOWER_NOSPACES),$\
+		$\
+	)$\
+)
+
+PACKAGES_TO_BUILD := $(strip \
+	$(if \
+		$(filter mac,$(PLATFORMS_TO_BUILD)),$\
+		$(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME)).dmg,$\
+		$\
+	) \
+	$(if \
+		$(filter windows,$(PLATFORMS_TO_BUILD)),$\
+		$(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME))Installer.exe,$\
+		$\
+	) \
+	$(if \
+		$(filter linux,$(PLATFORMS_TO_BUILD)),$\
+		$(foreach pkgtype,rpm deb,$(DIST_DIR)/$(GAME_NAME_LOWER_NOSPACES).$(pkgtype)),$\
+		$\
+	)$\
+)
+
+DEFAULT_GOALS := $(strip \
+	$(if $(PLATFORMS_TO_BUILD),,$(LOVE_FILE)) \
+	$($(if $(call HAS_PSEUDO_TARGET,binaries_only),BINARIES,PACKAGES)_TO_BUILD) \
+)
+
+$(if \
+	$(filter macOS,$(OS_TYPE)),$\
+	,$\
+	$(if \
+		$(filter mac,$(PLATFORMS_TO_BUILD)),$\
+		$(error The signing tools for macOS are only available on macOS platform. Please rerun make with `skip_mac` option),$\
+		$\
+	)$\
+)
+
+default: $(DEFAULT_GOALS)
+
+$(error Stop here!)
 
 # Required Tools (Generic)
 REQUIRED_TOOLS_GENERIC := love zip
@@ -306,5 +183,5 @@ dmg: macos
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 
-.PHONY: check-tools windows linux macos sign-macos notarize-macos dmg clean
+.PHONY: $(PSEUDO_TARGETS) check-tools windows linux macos sign-macos notarize-macos dmg clean
 
