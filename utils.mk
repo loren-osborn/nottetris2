@@ -20,6 +20,32 @@ endef
 # in the main makefile; here, we add 'debug' to support debugging functionality.
 PSEUDO_TARGETS := $(sort $(PSEUDO_TARGETS) debug)
 
+# @brief Defines and evaluates Make rules to handle pseudo targets.
+#
+# This macro creates no-operation rules for all defined pseudo targets, allowing
+# them to behave as boolean command-line flags without triggering unintended build
+# actions. It ensures that each pseudo target either does nothing or redirects
+# to the default goal if no other explicit targets are specified.
+#
+# To correctly enable pseudo-target behavior, you must:
+#   1. Add all pseudo targets listed in $(PSEUDO_TARGETS) to your .PHONY declaration:
+#        .PHONY: $(PSEUDO_TARGETS)
+#   2. Expand EVAL_PSEUDO_TARGETS_RULE at the bottom of your Makefile simply by referencing it:
+#        $(EVAL_PSEUDO_TARGETS_RULE)
+#
+# Failing to perform these two steps will result in pseudo targets not working as
+# intended.
+#
+# @param None
+# @return Evaluates rules for pseudo targets via $(eval).
+#
+# @note Internally, this macro defines each pseudo target as depending on the
+#       Makefile's default goal if and only if no other explicit targets were
+#       specified, thus preserving normal build behavior. The associated action
+#       is explicitly defined as a no-op to prevent any unintended commands from
+#       executing.
+EVAL_PSEUDO_TARGETS_RULE = $(eval $(NEWLINE)$(PSEUDO_TARGETS):$(if $(strip $(filter-out $(PSEUDO_TARGETS),$(MAKECMDGOALS))),,$(SPACE)$(.DEFAULT_GOAL))$(NEWLINE)$(TAB)@\# no-op$(NEWLINE)$(NEWLINE))
+
 # @brief Asserts that specified target(s) exist in the pseudo-targets list.
 # 
 # This macro checks whether the given target(s) (passed as the first argument)

@@ -76,112 +76,132 @@ $(if \
 
 default: $(DEFAULT_GOALS)
 
-$(error Stop here!)
+# Required Tools
+REQUIRED_TOOLS_GENERIC := zip
+REQUIRED_ASSETS_GENERIC :=
+REQUIRED_TOOLS_MAC_APP :=
+REQUIRED_ASSETS_MAC_APP :=
+REQUIRED_TOOLS_MAC_INSTALLER :=
+REQUIRED_ASSETS_MAC_INSTALLER :=
+REQUIRED_TOOLS_WINDOWS_APP :=
+REQUIRED_ASSETS_WINDOWS_APP :=
+REQUIRED_TOOLS_WINDOWS_INSTALLER :=
+REQUIRED_ASSETS_WINDOWS_INSTALLER :=
+REQUIRED_TOOLS_LINUX_APP :=
+REQUIRED_ASSETS_LINUX_APP :=
+REQUIRED_TOOLS_LINUX_INSTALLER :=
+REQUIRED_ASSETS_LINUX_INSTALLER :=
 
-# Required Tools (Generic)
-REQUIRED_TOOLS_GENERIC := love zip
-
-# Required Tools (macOS only)
-REQUIRED_TOOLS_MAC := hdiutil codesign xcrun
-
-# Combine lists conditionally
-REQUIRED_TOOLS := $(REQUIRED_TOOLS_GENERIC)
-ifneq ($(filter macOS,$(OS_TYPE)),)
-  REQUIRED_TOOLS += $(REQUIRED_TOOLS_MAC)
-endif
-
-# Detect Package Manager
-PACKAGE_MANAGER := $(shell which brew 2>/dev/null || which apt 2>/dev/null || which yum 2>/dev/null || which choco 2>/dev/null)
-INSTALL_CMD := $(if $(findstring brew, $(PACKAGE_MANAGER)), brew install, \
-              $(if $(findstring apt, $(PACKAGE_MANAGER)), sudo apt install -y, \
-              $(if $(findstring yum, $(PACKAGE_MANAGER)), sudo yum install -y, \
-              $(if $(findstring choco, $(PACKAGE_MANAGER)), choco install, \
-              echo "No package manager found! Install dependencies manually." && exit 1))))
-
-# Function to prompt for installation (as a single Bash string)
-define prompt_for_install
-	echo "The following required tools are missing: $$MISSING_TOOLS"; \
-	read -p "Would you like to install them? (y/N) " choice; \
-	if [ "$$choice" = "y" ]; then $(INSTALL_CMD) $$MISSING_TOOLS; else \
-		echo "Warning: Some tools are missing! Build may fail."; \
-	fi
-endef
-
-# Check for required tools
-check-tools:
-	@echo "Checking required tools..."
-	@MISSING_TOOLS=""; \
-	for tool in $(REQUIRED_TOOLS); do \
-		if ! command -v $$tool >/dev/null; then \
-			MISSING_TOOLS="$$MISSING_TOOLS $$tool"; \
-		fi; \
-	done; \
-	if [ -n "$$MISSING_TOOLS" ]; then $(prompt_for_install); fi
-	@echo "All required tools checked!"
+REQUIRED_TOOLS  := $(REQUIRED_TOOLS_GENERIC) $(foreach  plat,$(call TO_UPPER,$(PLATFORMS_TO_BUILD)),$(foreach artifact,APP $(if $(call HAS_PSEUDO_TARGET,binaries_only),,INSTALLER),$(REQUIRED_TOOLS_$(plat)_$(artifact))))
+REQUIRED_ASSETS := $(REQUIRED_ASSETS_GENERIC) $(foreach plat,$(call TO_UPPER,$(PLATFORMS_TO_BUILD)),$(foreach artifact,APP $(if $(call HAS_PSEUDO_TARGET,binaries_only),,INSTALLER),$(REQUIRED_ASSETS_$(plat)_$(artifact))))
 
 # Build LÖVE Archive
-$(LOVE_FILE): check-tools
+# removed dep: check-tools
+$(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(dir $(LOVE_FILE)).
 	@echo "Creating LÖVE archive..."
-	mkdir -p $(BUILD_DIR)
-	cd $(SOURCE_DIR) && zip -9 -r ../$(LOVE_FILE) ./*
+	cd $(SOURCE_DIR) && zip -9 -r $(realpath $(dir $(LOVE_FILE))) ./*
 	@echo "LÖVE archive created at $(LOVE_FILE)"
 
-# Windows Build
-windows: $(LOVE_FILE)
-	@echo "Building Windows Executable..."
-	mkdir -p $(BUILD_DIR)/windows
-	cat /usr/share/love/love.exe $(LOVE_FILE) > $(BUILD_DIR)/windows/$(GAME_NAME).exe
-	cp -r /usr/share/love/*.dll $(BUILD_DIR)/windows/
-	zip -9 -r $(DIST_DIR)/$(GAME_NAME)-win.zip $(BUILD_DIR)/windows
-	@echo "Windows Build Created: $(DIST_DIR)/$(GAME_NAME)-win.zip"
+%/.:
+	mkdir -p "$(patsubst %/.,%,$(subst $(DOLLARS)(SPACE),$(SPACE),$@))"
 
-# Linux Build
-linux: $(LOVE_FILE)
-	@echo "Building Linux AppImage..."
-	mkdir -p $(BUILD_DIR)/linux
-	cp $(LOVE_FILE) $(BUILD_DIR)/linux/$(GAME_NAME).love
-	zip -9 -r $(DIST_DIR)/$(GAME_NAME)-linux.zip $(BUILD_DIR)/linux
-	@echo "Linux Build Created: $(DIST_DIR)/$(GAME_NAME)-linux.zip"
 
-# macOS Build
-macos: $(LOVE_FILE)
-	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping macOS build: Not running on macOS."; exit 0; fi
-	@echo "Building macOS App Bundle..."
-	mkdir -p $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/{MacOS,Resources}
-	cp $(LOVE_FILE) $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/MacOS/$(GAME_NAME)
-	echo "APPL????" > $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/PkgInfo
-	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
-	echo "<plist version=\"1.0\">" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
-	echo "<dict>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
-	echo "<key>CFBundleIdentifier</key>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
-	echo "<string>$(IDENTIFIER)</string>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
-	echo "</dict>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
-	echo "</plist>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
-	zip -9 -r $(DIST_DIR)/$(GAME_NAME)-macos.zip $(BUILD_DIR)/macos
-	@echo "macOS Build Created: $(DIST_DIR)/$(GAME_NAME)-macos.zip"
+# # Required Tools (macOS only)
+# REQUIRED_TOOLS_MAC := hdiutil codesign xcrun
 
-# macOS Signing
-sign-macos: macos
-	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping signing: Not running on macOS."; exit 0; fi
-	@echo "Signing macOS App..."
-	codesign --deep --force --verify --verbose --sign "Developer ID Application: Your Name (XXXXXXXXXX)" $(BUILD_DIR)/macos/$(GAME_NAME).app
+# # Combine lists conditionally
+# REQUIRED_TOOLS := $(REQUIRED_TOOLS_GENERIC)
+# ifneq ($(filter macOS,$(OS_TYPE)),)
+#   REQUIRED_TOOLS += $(REQUIRED_TOOLS_MAC)
+# endif
 
-# macOS Notarization (Placeholder)
-notarize-macos: sign-macos
-	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping notarization: Not running on macOS."; exit 0; fi
-	@echo "Notarizing macOS App (Requires Apple Developer Account)..."
-	# Placeholder for Apple notarization command:
-	# xcrun altool --notarize-app -f $(BUILD_DIR)/macos/$(GAME_NAME).zip --primary-bundle-id "$(IDENTIFIER)" --username "your@appleid.com" --password "@keychain:app-password"
+# # Detect Package Manager
+# PACKAGE_MANAGER := $(shell which brew 2>/dev/null || which apt 2>/dev/null || which yum 2>/dev/null || which choco 2>/dev/null)
+# INSTALL_CMD := $(if $(findstring brew, $(PACKAGE_MANAGER)), brew install, \
+#               $(if $(findstring apt, $(PACKAGE_MANAGER)), sudo apt install -y, \
+#               $(if $(findstring yum, $(PACKAGE_MANAGER)), sudo yum install -y, \
+#               $(if $(findstring choco, $(PACKAGE_MANAGER)), choco install, \
+#               echo "No package manager found! Install dependencies manually." && exit 1))))
 
-# macOS DMG Creation
-dmg: macos
-	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping DMG creation: Not running on macOS."; exit 0; fi
-	@echo "Creating macOS DMG..."
-	hdiutil create -fs HFS+ -volname "$(GAME_NAME)" -srcfolder $(BUILD_DIR)/macos -ov $(DIST_DIR)/$(GAME_NAME).dmg
+# # Function to prompt for installation (as a single Bash string)
+# define prompt_for_install
+# 	echo "The following required tools are missing: $$MISSING_TOOLS"; \
+# 	read -p "Would you like to install them? (y/N) " choice; \
+# 	if [ "$$choice" = "y" ]; then $(INSTALL_CMD) $$MISSING_TOOLS; else \
+# 		echo "Warning: Some tools are missing! Build may fail."; \
+# 	fi
+# endef
+
+# # Check for required tools
+# check-tools:
+# 	@echo "Checking required tools..."
+# 	@MISSING_TOOLS=""; \
+# 	for tool in $(REQUIRED_TOOLS); do \
+# 		if ! command -v $$tool >/dev/null; then \
+# 			MISSING_TOOLS="$$MISSING_TOOLS $$tool"; \
+# 		fi; \
+# 	done; \
+# 	if [ -n "$$MISSING_TOOLS" ]; then $(prompt_for_install); fi
+# 	@echo "All required tools checked!"
+
+# # Windows Build
+# windows: $(LOVE_FILE)
+# 	@echo "Building Windows Executable..."
+# 	mkdir -p $(BUILD_DIR)/windows
+# 	cat /usr/share/love/love.exe $(LOVE_FILE) > $(BUILD_DIR)/windows/$(GAME_NAME).exe
+# 	cp -r /usr/share/love/*.dll $(BUILD_DIR)/windows/
+# 	zip -9 -r $(DIST_DIR)/$(GAME_NAME)-win.zip $(BUILD_DIR)/windows
+# 	@echo "Windows Build Created: $(DIST_DIR)/$(GAME_NAME)-win.zip"
+
+# # Linux Build
+# linux: $(LOVE_FILE)
+# 	@echo "Building Linux AppImage..."
+# 	mkdir -p $(BUILD_DIR)/linux
+# 	cp $(LOVE_FILE) $(BUILD_DIR)/linux/$(GAME_NAME).love
+# 	zip -9 -r $(DIST_DIR)/$(GAME_NAME)-linux.zip $(BUILD_DIR)/linux
+# 	@echo "Linux Build Created: $(DIST_DIR)/$(GAME_NAME)-linux.zip"
+
+# # macOS Build
+# macos: $(LOVE_FILE)
+# 	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping macOS build: Not running on macOS."; exit 0; fi
+# 	@echo "Building macOS App Bundle..."
+# 	mkdir -p $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/{MacOS,Resources}
+# 	cp $(LOVE_FILE) $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/MacOS/$(GAME_NAME)
+# 	echo "APPL????" > $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/PkgInfo
+# 	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
+# 	echo "<plist version=\"1.0\">" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
+# 	echo "<dict>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
+# 	echo "<key>CFBundleIdentifier</key>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
+# 	echo "<string>$(IDENTIFIER)</string>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
+# 	echo "</dict>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
+# 	echo "</plist>" >> $(BUILD_DIR)/macos/$(GAME_NAME).app/Contents/Info.plist
+# 	zip -9 -r $(DIST_DIR)/$(GAME_NAME)-macos.zip $(BUILD_DIR)/macos
+# 	@echo "macOS Build Created: $(DIST_DIR)/$(GAME_NAME)-macos.zip"
+
+# # macOS Signing
+# sign-macos: macos
+# 	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping signing: Not running on macOS."; exit 0; fi
+# 	@echo "Signing macOS App..."
+# 	codesign --deep --force --verify --verbose --sign "Developer ID Application: Your Name (XXXXXXXXXX)" $(BUILD_DIR)/macos/$(GAME_NAME).app
+
+# # macOS Notarization (Placeholder)
+# notarize-macos: sign-macos
+# 	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping notarization: Not running on macOS."; exit 0; fi
+# 	@echo "Notarizing macOS App (Requires Apple Developer Account)..."
+# 	# Placeholder for Apple notarization command:
+# 	# xcrun altool --notarize-app -f $(BUILD_DIR)/macos/$(GAME_NAME).zip --primary-bundle-id "$(IDENTIFIER)" --username "your@appleid.com" --password "@keychain:app-password"
+
+# # macOS DMG Creation
+# dmg: macos
+# 	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping DMG creation: Not running on macOS."; exit 0; fi
+# 	@echo "Creating macOS DMG..."
+# 	hdiutil create -fs HFS+ -volname "$(GAME_NAME)" -srcfolder $(BUILD_DIR)/macos -ov $(DIST_DIR)/$(GAME_NAME).dmg
 
 # Clean Build Artifacts
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 
 .PHONY: $(PSEUDO_TARGETS) check-tools windows linux macos sign-macos notarize-macos dmg clean
+
+$(EVAL_PSEUDO_TARGETS_RULE)
 
