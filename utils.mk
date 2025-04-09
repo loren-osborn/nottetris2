@@ -13,6 +13,111 @@ define NEWLINE
 
 endef
 
+# Reverse a list of words.
+#
+# This macro takes a space‐separated list and returns a new list whose items
+# appear in reverse order. It does so by recursively removing the first word of
+# the list and appending it to the result of reversing the remainder. This
+# implementation is compatible with GNU Make 3.81.
+#
+# @param 1 A space‐separated list of words.
+# @return The list in reverse order.
+#
+# @example
+#   MYLIST = one two three
+#   REVLIST = $(call REVERSE,$(MYLIST))
+#   # REVLIST expands to "three two one"
+#
+REVERSE = $(strip $(if $1,$(call REVERSE,$(wordlist 2,$(words $1),$1)) $(firstword $1)))
+
+# @brief Selects singular or plural form based on the number of words.
+#
+# This macro takes three arguments:
+#   $(1) - A space‐separated string.
+#   $(2) - The singular form (used when $(1) contains exactly one word).
+#   $(3) - The plural form (used when $(1) contains zero or more than one word).
+#
+# @param 1 The input string whose word count is evaluated.
+# @param 2 The singular form string.
+# @param 3 The plural form string.
+# @return The singular form if there is exactly one word in $(1); otherwise, the plural form.
+SINGULAR_PLURAL = $(if $(filter 1,$(words $(1))),$(2),$(3))
+
+# @brief Joins a list of words with a specified delimiter.
+#
+# This macro takes a space‐separated list (argument $(1)) and a delimiter (argument $(2))
+# and returns a single string in which all words have been joined by the delimiter.
+# Leading and trailing whitespace is removed prior to joining.
+#
+# @param 1 The space‐separated list of words to join.
+# @param 2 The string delimiter to use between words.
+# @return A single string with the words in $(1) joined by $(2).
+SIMPLE_JOIN_LIST = $(subst \
+	$(SPACE),$\
+	$(2),$\
+	$(strip $(1))$\
+)
+
+# @brief Joins a list of words into a grammatically formatted string.
+#
+# This macro concatenates the words in a space-separated list (argument $(1)) using different
+# join delimiters depending on the list length:
+#
+#   - For an empty list, it returns the fallback value provided in $(4).
+#   - For a single-word list, it returns that word.
+#   - For a two-word list, it returns the two words joined by the delimiter in $(2).
+#   - For lists with more than two words, it joins all but the last word using the delimiter in $(3),
+#     then appends the final joining delimiter $(2) followed by the last word.
+#
+# This is intended to produce natural-sounding, English-style list formatting.
+#
+# @param 1 The input space-separated list of words.
+# @param 2 The final delimiter to use between the penultimate and last item (e.g. " and ").
+# @param 3 The delimiter to use between earlier items (e.g. ", ").
+# @param 4 The fallback string to return if the list is empty.
+#
+# @return A grammatically formatted list string based on the number of input words.
+#
+# @example
+#   $(call GRAMATICAL_JOIN_LIST,foo,$(SPACE)and$(SPACE),$(COMMA)$(SPACE),none)
+#     → foo
+#
+#   $(call GRAMATICAL_JOIN_LIST,foo bar,$(SPACE)and$(SPACE),$(COMMA)$(SPACE),none)
+#     → foo and bar
+#
+#   $(call GRAMATICAL_JOIN_LIST,foo bar baz,$(SPACE)and$(SPACE),$(COMMA)$(SPACE),none)
+#     → foo, bar and baz
+#
+#   $(call GRAMATICAL_JOIN_LIST,,$(SPACE)and$(SPACE),$(COMMA)$(SPACE),none)
+#     → none
+GRAMATICAL_JOIN_LIST = $(if \
+	$(filter 0,$(words $(1))),$\
+	$(4),$\
+	$(if \
+		$(filter 1,$(words $(1))),$\
+		$(firstword $(1)),$\
+		$(if \
+			$(filter 2,$(words $(1))),$\
+			$(firstword $(1)),$\
+			$(call \
+				SIMPLE_JOIN_LIST,$\
+				$(call \
+					REVERSE,$\
+					$(wordlist \
+						2,$\
+						$(words $1),$\
+						$(call \
+							REVERSE,$\
+							$(1)$\
+						)$\
+					)$\
+				),$\
+				$(3)$\
+			)$\
+		)$(2)$(lastword $(1))$\
+	)$\
+)
+
 # @brief List of pseudo targets.
 #
 # Pseudo targets are targets that act purely like modal flags without any build steps or dependencies.
@@ -47,15 +152,15 @@ PSEUDO_TARGETS := $(sort $(PSEUDO_TARGETS) debug)
 EVAL_PSEUDO_TARGETS_RULE = $(eval $(NEWLINE)$(PSEUDO_TARGETS):$(if $(strip $(filter-out $(PSEUDO_TARGETS),$(MAKECMDGOALS))),,$(SPACE)$(.DEFAULT_GOAL))$(NEWLINE)$(TAB)@\# no-op$(NEWLINE)$(NEWLINE))
 
 # @brief Asserts that specified target(s) exist in the pseudo-targets list.
-# 
+#
 # This macro checks whether the given target(s) (passed as the first argument)
 # are present in the global PSEUDO_TARGETS list. If any target is missing, it triggers a make error.
 #
 # @param 1 The target or list of targets to validate against PSEUDO_TARGETS.
-ASSERT_PSEUDO_TARGETS = $(if $(strip $(filter-out $(PSEUDO_TARGETS),$(1))),$(error $(filter-out $(1),$(PSEUDO_TARGETS)) is/are not in $$(PSEUDO_TARGETS). Please add them.),)
+ASSERT_PSEUDO_TARGETS = $(if $(strip $(filter-out $(PSEUDO_TARGETS),$(1))),$(error $(filter-out $(1),$(PSEUDO_TARGETS)) $(call SINGULAR_PLURAL,$(filter-out $(1),$(PSEUDO_TARGETS)),is,are) not in $$(PSEUDO_TARGETS). Please add them.),)
 
 # @brief Checks if a pseudo target is present among the make command goals.
-# 
+#
 # This macro ensures that the specified target (provided as the first argument)
 # is both defined in PSEUDO_TARGETS and included in the current make command goals.
 #
@@ -64,7 +169,7 @@ ASSERT_PSEUDO_TARGETS = $(if $(strip $(filter-out $(PSEUDO_TARGETS),$(1))),$(err
 HAS_PSEUDO_TARGET = $(call ASSERT_PSEUDO_TARGETS,$(1))$(filter $(1),$(MAKECMDGOALS))
 
 # @brief Defines or updates a variable and optionally logs the assignment for debugging.
-# 
+#
 # This macro conditionally defines a variable with a given value. If the 'debug' pseudo target is active,
 # it issues a warning that logs the variable's name and the assignment details to help track variable assignments.
 # The assignment operator defaults to ':=' if not specified.
@@ -112,6 +217,22 @@ $(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),6)
 $(call ASSERT_EQ,$(DOLLARS)(TEST__DEFINE_VAR__3),7)
 $(call ASSERT_EQ,$(DOLLARS)(TEST__DEFINE_VAR__3),8)
 
+# Some funcs from above not yet tested:
+$(call ASSERT_EQ,$(DOLLARS)(call REVERSE,a b  c d  e),e d c b a)
+
+$(call ASSERT_EQ,$(DOLLARS)(call SINGULAR_PLURAL,,is,are),are)
+$(call ASSERT_EQ,$(DOLLARS)(call SINGULAR_PLURAL,foo,is,are),is)
+$(call ASSERT_EQ,$(DOLLARS)(call SINGULAR_PLURAL,foo bar baz,is,are),are)
+
+$(call ASSERT_EQ,$(DOLLARS)(call SIMPLE_JOIN_LIST,foo bar baz bee boo,X),fooXbarXbazXbeeXboo)
+$(call ASSERT_EQ,$(DOLLARS)(call SIMPLE_JOIN_LIST,,X),)
+$(call ASSERT_EQ,$(DOLLARS)(call SIMPLE_JOIN_LIST,foo,X),foo)
+
+$(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,,X,Y,Z),Z)
+$(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,foo,X,Y,Z),foo)
+$(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,foo bar,X,Y,Z),fooXbar)
+$(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,foo bar baz bee boo,X,Y,Z),fooYbarYbazYbeeXboo)
+
 # @brief Lazily defines a variable, deferring its evaluation.
 #
 # This macro delays the evaluation of a variable's value by wrapping a call to DEFINE_VAR.
@@ -138,7 +259,7 @@ LAZY_DEFINE_VAR = $(call \
 		$(if $(3),$(3),:=)$\
 	)$(DOLLARS)($(1)),=)
 
-# Now test 
+# Now test
 $(call LAZY_DEFINE_VAR,TEST__LAZY_DEFINE_VAR__1,$(DOLLARS)(TEST_FN_INCREMENT))
 $(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),9)
 $(call ASSERT_EQ,$(DOLLARS)(TEST__LAZY_DEFINE_VAR__1),10)
@@ -147,7 +268,7 @@ $(call ASSERT_EQ,$(DOLLARS)(TEST__LAZY_DEFINE_VAR__1),10)
 $(call ASSERT_EQ,$(DOLLARS)(TEST_FN_INCREMENT),11)
 
 # @brief Extracts a specific field from each blob in a list.
-# 
+#
 # This macro iterates over a list of blobs (each blob containing colon‑separated fields)
 # and extracts the field specified by the first argument.
 #
@@ -193,11 +314,11 @@ $(call ASSERT_EQ,$(DOLLARS)(call TO_UPPER,jumps Over the lazy DOG),JUMPS OVER TH
 #         - TO_SNAKE_CASE: function(string) → snake_case_string
 #         - TO_ALL_CAPS:   function(string) → ALL_CAPS_STRING
 #
-# @note Internally, both macros are dynamically generated using an advanced meta-programming 
-#       process. This process involves iterating over definitions ("function_name:case_transformer") 
+# @note Internally, both macros are dynamically generated using an advanced meta-programming
+#       process. This process involves iterating over definitions ("function_name:case_transformer")
 #       and constructing each macro through a sequence of nested substitutions.
 #
-#       Temporary marker tokens are used during transformation to reliably detect word boundaries. 
+#       Temporary marker tokens are used during transformation to reliably detect word boundaries.
 #       These internal markers are:
 #         - |1: Represents a literal vertical bar (|) character.
 #         - |2 and |3: Inserted before and after uppercase letters, respectively.
@@ -205,14 +326,14 @@ $(call ASSERT_EQ,$(DOLLARS)(call TO_UPPER,jumps Over the lazy DOG),JUMPS OVER TH
 #         - |6: Inserted before an uppercase character immediately followed by a lowercase character,
 #               aiding in detecting certain word boundaries.
 #
-#       Specifically, word boundaries for inserting underscores (in snake_case) or maintaining separation 
+#       Specifically, word boundaries for inserting underscores (in snake_case) or maintaining separation
 #       (in all_caps) are detected by two composite marker sequences:
 #         1. "|5|2": Identifies a lowercase-to-uppercase transition as a word boundary.
-#         2. "|3|2|6": Identifies the boundary between two uppercase letters when the second uppercase 
+#         2. "|3|2|6": Identifies the boundary between two uppercase letters when the second uppercase
 #                      letter is followed by a lowercase letter.
 #
-#       These markers and composite sequences are entirely internal implementation details. 
-#       They ensure accurate and maintainable word boundary detection, simplifying the public 
+#       These markers and composite sequences are entirely internal implementation details.
+#       They ensure accurate and maintainable word boundary detection, simplifying the public
 #       interface exposed to macro callers.
 $(foreach blob,TO_SNAKE_CASE:TO_LOWER TO_ALL_CAPS:TO_UPPER,$(call \
 	DEFINE_VAR,$\
@@ -491,3 +612,84 @@ OS_TYPE := $(if \
 	)$\
 )
 
+# @brief Finds the first available tool from a list of supported command names.
+#
+# This macro checks for the presence of one or more command-line tools given as a
+# space-separated list. It uses `command -v` to test each tool in order and returns
+# the name of the first one found in the user's environment.
+#
+# This is useful for selecting one of several interchangeable tools (e.g., "rg", "ag", "grep")
+# without hard-coding which one must be installed.
+#
+# @param 1 A space-separated list of tool names to check, in order of preference.
+# @return The name of the first available tool, or an empty string if none are found.
+#
+# @example
+#   SEARCH_TOOL := $(call FIND_FIRST_TOOL,rg ag grep)
+#   # Might yield "rg", "ag", "grep", or empty string
+#
+# @note The check is performed using a `$(shell ...)` call with short-circuiting `||`
+#       logic. This means it re-evaluates on every expansion unless you explicitly
+#       memoize the result yourself by assigning it to a simple variable.
+#
+# @note Internally, it builds a shell expression like:
+#   ( command -v tool1 >/dev/null && echo tool1 ) || \
+#   ( command -v tool2 >/dev/null && echo tool2 ) || ...
+#
+# @see SIMPLE_JOIN_LIST for how the fallback shell expressions are constructed.
+FIND_FIRST_TOOL = $(shell \
+	$(subst \
+		$(DOLLARS)(SPACE),$\
+		$(SPACE),$\
+		$(call \
+			SIMPLE_JOIN_LIST,$\
+			$(foreach \
+				tool,$\
+				$(1),$\
+				($(DOLLARS)(SPACE)command$(DOLLARS)(SPACE)-v$(DOLLARS)(SPACE)$(tool)>/dev/null$(DOLLARS)(SPACE)&&$\
+					$(DOLLARS)(SPACE)echo$(DOLLARS)(SPACE)$(tool)$(DOLLARS)(SPACE))$\
+			), || $\
+		)$\
+	)$\
+)
+
+# @brief Finds the first available tool from a list of supported command names.
+#
+# This macro checks for the presence of one or more command-line tools given as a
+# space-separated list. It uses `command -v` to test each tool in order and returns
+# the name of the first one found in the user's environment.
+#
+# This is useful for selecting one of several interchangeable tools (e.g., "rg", "ag", "grep")
+# without hard-coding which one must be installed.
+#
+# @param 1 A space-separated list of tool names to check, in order of preference.
+# @return The name of the first available tool, or an empty string if none are found.
+#
+# @example
+#   SEARCH_TOOL := $(call FIND_FIRST_TOOL,rg ag grep)
+#   # Might yield "rg", "ag", "grep", or empty string
+#
+# @note The check is performed using a `$(shell ...)` call with short-circuiting `||`
+#       logic. This means it re-evaluates on every expansion unless you explicitly
+#       memoize the result yourself by assigning it to a simple variable.
+#
+# @note Internally, it builds a shell expression like:
+#   ( command -v tool1 >/dev/null && echo tool1 ) || \
+#   ( command -v tool2 >/dev/null && echo tool2 ) || ...
+#
+# @see SIMPLE_JOIN_LIST for how the fallback shell expressions are constructed.
+FIND_MISSING_TOOLS = $(strip $(shell \
+	$(subst \
+		$(DOLLARS)(SPACE),$\
+		$(SPACE),$\
+		$(call \
+			SIMPLE_JOIN_LIST,$\
+			$(foreach \
+				tool,$\
+				$(1),$\
+				($(DOLLARS)(SPACE)command$(DOLLARS)(SPACE)-v$(DOLLARS)(SPACE)$(tool)>/dev/null$(DOLLARS)(SPACE)||$\
+					$(DOLLARS)(SPACE)echo$(DOLLARS)(SPACE)$(tool)$(DOLLARS)(SPACE))$\
+			), ; $\
+		)$\
+	)$\
+))

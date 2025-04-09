@@ -65,6 +65,8 @@ $(if \
 	)$\
 )
 
+DIR_IF_MISSING = $(shell [ -d $(dir $(1)). ] || echo $(dir $(1)).)
+
 default: $(DEFAULT_GOALS)
 
 # Required Tools
@@ -79,18 +81,39 @@ REQUIRED_ASSETS_WINDOWS_APP := $(foreach bits,32 64,$(VENDOR_DIR)/love2d/love-$(
 REQUIRED_TOOLS_WINDOWS_INSTALLER :=
 REQUIRED_ASSETS_WINDOWS_INSTALLER :=
 
-REQUIRED_TOOLS  := $(REQUIRED_TOOLS_GENERIC) $(foreach  plat,$(call TO_UPPER,$(PLATFORMS_TO_BUILD)),$(foreach artifact,APP $(if $(call HAS_PSEUDO_TARGET,binaries_only),,INSTALLER),$(REQUIRED_TOOLS_$(plat)_$(artifact))))
-REQUIRED_ASSETS := $(REQUIRED_ASSETS_GENERIC) $(foreach plat,$(call TO_UPPER,$(PLATFORMS_TO_BUILD)),$(foreach artifact,APP $(if $(call HAS_PSEUDO_TARGET,binaries_only),,INSTALLER),$(REQUIRED_ASSETS_$(plat)_$(artifact))))
+REQUIRED_TOOLS  := $(strip $(REQUIRED_TOOLS_GENERIC) $(foreach  plat,$(call TO_UPPER,$(PLATFORMS_TO_BUILD)),$(foreach artifact,APP $(if $(call HAS_PSEUDO_TARGET,binaries_only),,INSTALLER),$(REQUIRED_TOOLS_$(plat)_$(artifact)))))
+REQUIRED_ASSETS := $(strip $(REQUIRED_ASSETS_GENERIC) $(foreach plat,$(call TO_UPPER,$(PLATFORMS_TO_BUILD)),$(foreach artifact,APP $(if $(call HAS_PSEUDO_TARGET,binaries_only),,INSTALLER),$(REQUIRED_ASSETS_$(plat)_$(artifact)))))
+
+MISSING_ASSETS := $(foreach file,$(REQUIRED_ASSETS),$(if $(wildcard $(file)),,$(file)))
+
+SUPPORTED_DOWNLOADERS := wget curl
+
+FOUND_DOWNLOADER := $(call FIND_FIRST_TOOL,$(SUPPORTED_DOWNLOADERS))
+
+ifneq ($(MISSING_ASSETS),)
+	REQUIRED_TOOLS += $(if $(FOUND_DOWNLOADER),$(FOUND_DOWNLOADER),$(SUPPORTED_DOWNLOADERS))
+endif
+
+MISSING_TOOLS = $(call FIND_MISSING_TOOLS,$(REQUIRED_TOOLS))
+
+ifneq ($(MISSING_TOOLS),)
+    # I'm hoping to add some package installation support here, but for now, just error out:
+    $(error The system is missing the following required tools: $(call GRAMATICAL_JOIN_LIST,$(MISSING_TOOLS),$(SPACE)and$(SPACE),$(COMMA)$(SPACE),none))
+endif
+
+DOWNLOAD_URL_TO_FILE = $(if $(filter wget,$(FOUND_DOWNLOADER)),wget -q -O $(2) $(1),curl -fsSL -o $(2) $(1))
 
 # Build LÖVE Archive
 # removed dep: check-tools
-$(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(dir $(LOVE_FILE)).
+$(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(call DIR_IF_MISSING,$(LOVE_FILE)) $(shell find $(SOURCE_DIR))
 	@echo "Creating LÖVE archive..."
-	cd $(SOURCE_DIR) && zip -9 -r $(realpath $(dir $(LOVE_FILE))) ./*
-	@echo "LÖVE archive created at $(LOVE_FILE)"
+	cd $(SOURCE_DIR) && command zip -9 -r $(realpath $(dir $(LOVE_FILE)))/$(notdir $(LOVE_FILE)) ./*
+	@[ -f "$(LOVE_FILE)" ] && echo "LÖVE archive created at $(LOVE_FILE)"
 
 %/.:
 	mkdir -p "$(patsubst %/.,%,$(subst $(DOLLARS)(SPACE),$(SPACE),$@))"
+
+$(eval $(foreach asset,$(filter $(VENDOR_DIR)/love2d/%,$(REQUIRED_ASSETS)),$(NEWLINE)$(asset): $(call DIR_IF_MISSING,$(asset))$(NEWLINE)$(TAB)command $(call DOWNLOAD_URL_TO_FILE,https://github.com/love2d/love/releases/download/$(REQUIRED_LOVE_VERSION)/$(notdir $(asset)),$(asset))$(NEWLINE)$(NEWLINE)))
 
 
 # # Required Tools (macOS only)
@@ -178,9 +201,8 @@ $(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(dir $(LOVE_FILE)).
 
 # Clean Build Artifacts
 clean:
-	rm -rf $(BUILD_DIR) $(DIST_DIR)
+	rm -rf $(BUILD_DIR) $(DIST_DIR) $(VENDOR_DIR)
 
 .PHONY: $(PSEUDO_TARGETS) check-tools windows macos sign-macos notarize-macos dmg clean
 
 $(EVAL_PSEUDO_TARGETS_RULE)
-
