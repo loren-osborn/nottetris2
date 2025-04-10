@@ -1,5 +1,3 @@
-# Basics:
-
 BLANK :=
 SPACE := $(BLANK) $(BLANK)
 TAB := $(BLANK)	$(BLANK)
@@ -13,7 +11,7 @@ define NEWLINE
 
 endef
 
-# Reverse a list of words.
+# @brief Reverse a list of words.
 #
 # This macro takes a space‐separated list and returns a new list whose items
 # appear in reverse order. It does so by recursively removing the first word of
@@ -27,7 +25,6 @@ endef
 #   MYLIST = one two three
 #   REVLIST = $(call REVERSE,$(MYLIST))
 #   # REVLIST expands to "three two one"
-#
 REVERSE = $(strip $(if $1,$(call REVERSE,$(wordlist 2,$(words $1),$1)) $(firstword $1)))
 
 # @brief Selects singular or plural form based on the number of words.
@@ -120,9 +117,9 @@ GRAMATICAL_JOIN_LIST = $(if \
 
 # @brief List of pseudo targets.
 #
-# Pseudo targets are targets that act purely like modal flags without any build steps or dependencies.
-# They function as boolean command line options. The complete list of pseudo targets should be defined
-# in the main makefile; here, we add 'debug' to support debugging functionality.
+# Pseudo targets are modal boolean flags that alter the behavior of the build without
+# directly building any files. The complete list of pseudo targets should be defined in the
+# main Makefile. (In this file, we add the 'debug' flag for debugging purposes.)
 PSEUDO_TARGETS := $(sort $(PSEUDO_TARGETS) debug)
 
 # @brief Defines and evaluates Make rules to handle pseudo targets.
