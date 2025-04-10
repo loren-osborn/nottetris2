@@ -611,30 +611,38 @@ OS_TYPE := $(if \
 
 # @brief Finds the first available tool from a list of supported command names.
 #
-# This macro checks for the presence of one or more command-line tools given as a
-# space-separated list. It uses `command -v` to test each tool in order and returns
-# the name of the first one found in the user's environment.
+# This macro checks a space-separated list of tool names and returns the name of the
+# first tool that exists in the user’s environment. It performs the check by invoking
+# a shell command for each tool:
 #
-# This is useful for selecting one of several interchangeable tools (e.g., "rg", "ag", "grep")
-# without hard-coding which one must be installed.
+#   - If a tool is prefixed with "windows:" and the build is not running on Windows,
+#     it uses Wine to run the Windows native command via:
+#         wine cmd /c "where <tool>"
+#   - If the build is running on Windows, it uses the native Windows "where" command.
+#   - Otherwise (on non-Windows systems without the "windows:" prefix), it uses:
+#         command -v <tool>
+#
+# If the check fails for a tool, the macro echoes that tool’s name (with any "windows:" 
+# prefix removed). The resulting output is a space-separated list of the missing tools.
 #
 # @param 1 A space-separated list of tool names to check, in order of preference.
+#           (Note: The "windows:" prefix is supported but only triggers special handling 
+#           as described above.)
 # @return The name of the first available tool, or an empty string if none are found.
 #
 # @example
-#   SEARCH_TOOL := $(call FIND_FIRST_TOOL,rg ag grep)
-#   # Might yield "rg", "ag", "grep", or empty string
+#   SEARCH_TOOL := $(call FIND_FIRST_TOOL,windows:innosetup git curl)
+#   # On a non-Windows system, this will check for Innosetup using:
+#   #   wine cmd /c "where innosetup"
+#   # and for git and curl using "command -v". The result will be the first tool found.
 #
-# @note The check is performed using a `$(shell ...)` call with short-circuiting `||`
-#       logic. This means it re-evaluates on every expansion unless you explicitly
-#       memoize the result yourself by assigning it to a simple variable.
-#
-# @note Internally, it builds a shell expression like:
-#   ( command -v tool1 >/dev/null && echo tool1 ) || \
-#   ( command -v tool2 >/dev/null && echo tool2 ) || ...
+# @note The check is performed with a $(shell ...) call that assembles a series of
+#       fallback commands separated by semicolons (which serve only as command separators,
+#       not as literal output). On every macro expansion, these commands are re-evaluated,
+#       so the result is not automatically memoized.
 #
 # @see SIMPLE_JOIN_LIST for how the fallback shell expressions are constructed.
-FIND_FIRST_TOOL = $(shell \
+FIND_FIRST_TOOL = $(strip $(shell \
 	$(subst \
 		$(DOLLARS)(SPACE),$\
 		$(SPACE),$\
@@ -643,39 +651,58 @@ FIND_FIRST_TOOL = $(shell \
 			$(foreach \
 				tool,$\
 				$(1),$\
-				($(DOLLARS)(SPACE)command$(DOLLARS)(SPACE)-v$(DOLLARS)(SPACE)$(tool)>/dev/null$(DOLLARS)(SPACE)&&$\
-					$(DOLLARS)(SPACE)echo$(DOLLARS)(SPACE)$(tool)$(DOLLARS)(SPACE))$\
+				($(DOLLARS)(SPACE)$(if \
+				    $(and \
+				        $(filter windows:%,$(tool)),$\
+				        $(filter-out Windows,$(OS_TYPE))$\
+				    ),$\
+				    wine$(DOLLARS)(SPACE)cmd$(DOLLARS)(SPACE)/c$(DOLLARS)(SPACE)"where$(DOLLARS)(SPACE)\"$(patsubst windows:%,%,$(tool))\"",$\
+				    $(if \
+				        $(filter Windows,$(OS_TYPE)),$\
+				        where,$\
+				        command$(DOLLARS)(SPACE)-v$\
+				    )$(DOLLARS)(SPACE)$(patsubst windows:%,%,$(tool))$\
+				)>/dev/null$(DOLLARS)(SPACE)&&$\
+					$(DOLLARS)(SPACE)echo$(DOLLARS)(SPACE)"$(patsubst windows:%,%,$(tool))"$(DOLLARS)(SPACE))$\
 			), || $\
 		)$\
 	)$\
-)
+))
 
-# @brief Finds the first available tool from a list of supported command names.
+# @brief Identifies the missing tools from a list of supported command names.
 #
-# This macro checks for the presence of one or more command-line tools given as a
-# space-separated list. It uses `command -v` to test each tool in order and returns
-# the name of the first one found in the user's environment.
+# This macro checks a space-separated list of tool names, returning a list of tools
+# that are not available in the user’s environment. For each tool in the input:
 #
-# This is useful for selecting one of several interchangeable tools (e.g., "rg", "ag", "grep")
-# without hard-coding which one must be installed.
+#   - If the tool is specified with a "windows:" prefix (e.g. "windows:innosetup") and 
+#     the build is not running on Windows, it uses Wine to execute:
+#         wine cmd /c "where <tool>"
+#   - If the build is running on Windows, it uses the native Windows command:
+#         where <tool>
+#   - Otherwise (on non-Windows systems), it uses the POSIX command:
+#         command -v <tool>
+#
+# For each tool, if the check fails (i.e. no executable is found), the tool's name
+# (with any "windows:" prefix stripped) is echoed. The result is a space-separated
+# list of the missing tools.
 #
 # @param 1 A space-separated list of tool names to check, in order of preference.
-# @return The name of the first available tool, or an empty string if none are found.
+#           Tools that require Windows lookup may be prefixed with "windows:".
+# @return A space-separated list of missing tools, or an empty string if all are found.
 #
 # @example
-#   SEARCH_TOOL := $(call FIND_FIRST_TOOL,rg ag grep)
-#   # Might yield "rg", "ag", "grep", or empty string
+#   MISSING_TOOLS := $(call FIND_MISSING_TOOLS,windows:innosetup git curl)
+#   # On a non-Windows system using Wine, this will check for innosetup via:
+#   #   wine cmd /c "where innosetup"
+#   # and for git and curl using "command -v". If, say, git is missing, MISSING_TOOLS
+#   # will include "git" in the resulting string.
 #
-# @note The check is performed using a `$(shell ...)` call with short-circuiting `||`
-#       logic. This means it re-evaluates on every expansion unless you explicitly
-#       memoize the result yourself by assigning it to a simple variable.
-#
-# @note Internally, it builds a shell expression like:
-#   ( command -v tool1 >/dev/null && echo tool1 ) || \
-#   ( command -v tool2 >/dev/null && echo tool2 ) || ...
-#
-# @see SIMPLE_JOIN_LIST for how the fallback shell expressions are constructed.
-FIND_MISSING_TOOLS = $(strip $(shell \
+# @note The macro leverages a combination of shell commands and conditional logic.
+#       It uses a substitution function (SIMPLE_JOIN_LIST) to join the fallback shell
+#       expressions separated by semicolons. Each expression attempts to check for the tool's
+#       presence and echoes the tool's name if it is missing. All output is then stripped of
+#       extraneous whitespace.
+FIND_MISSING_TOOLS = $(strip $(error \
 	$(subst \
 		$(DOLLARS)(SPACE),$\
 		$(SPACE),$\
@@ -684,8 +711,19 @@ FIND_MISSING_TOOLS = $(strip $(shell \
 			$(foreach \
 				tool,$\
 				$(1),$\
-				($(DOLLARS)(SPACE)command$(DOLLARS)(SPACE)-v$(DOLLARS)(SPACE)$(tool)>/dev/null$(DOLLARS)(SPACE)||$\
-					$(DOLLARS)(SPACE)echo$(DOLLARS)(SPACE)$(tool)$(DOLLARS)(SPACE))$\
+				($(DOLLARS)(SPACE)$(if \
+				    $(and \
+				        $(filter windows:%,$(tool)),$\
+				        $(filter-out Windows,$(OS_TYPE))$\
+				    ),$\
+				    wine$(DOLLARS)(SPACE)cmd$(DOLLARS)(SPACE)/c$(DOLLARS)(SPACE)"where$(DOLLARS)(SPACE)\"$(patsubst windows:%,%,$(tool))\"",$\
+				    $(if \
+				        $(filter Windows,$(OS_TYPE)),$\
+				        where,$\
+				        command$(DOLLARS)(SPACE)-v$\
+				    )$(DOLLARS)(SPACE)$(patsubst windows:%,%,$(tool))$\
+				)>/dev/null$(DOLLARS)(SPACE)||$\
+					$(DOLLARS)(SPACE)echo$(DOLLARS)(SPACE)"$(patsubst windows:%,%,$(tool))"$(DOLLARS)(SPACE))$\
 			), ; $\
 		)$\
 	)$\
