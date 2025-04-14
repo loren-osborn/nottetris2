@@ -276,6 +276,24 @@ GET_FIELD_FROM_BLOBS = $(foreach blob,$(2),$(word $(1),$(subst :,$(SPACE),$(blob
 
 $(call ASSERT_EQ,$(DOLLARS)(call GET_FIELD_FROM_BLOBS,3,a:b:c d e:f:g:h i:j:k:l:m n:o),c  g k )
 
+# @brief Filters a list of blobs by matching a specific field.
+#
+# This macro iterates over a list of blobs (each blob being a string with fields
+# separated by colons) and returns only those blobs for which the field specified by
+# the first parameter matches the expected value (second parameter).
+#
+# @param 1 The field number (1-indexed) to be checked in each blob.
+# @param 2 The expected value for that field.
+# @param 3 A space-separated list of blobs, where each blob is a colon-delimited string.
+# @return A space-separated list of blobs whose field number $(1) equals the value $(2).
+#
+# @example
+#   $(call GET_BLOBS_MATCHING_FIELD,2,b,a:b:c d e:f:g:h i:b:k:l:m n:b)
+#   // Returns: a:b:c   i:b:k:l:m n:b
+GET_BLOBS_MATCHING_FIELD = $(foreach blob,$(3),$(if $(filter $(2),$(word $(1),$(subst :,$(SPACE),$(blob)))),$(blob),))
+
+$(call ASSERT_EQ,$(DOLLARS)(call GET_BLOBS_MATCHING_FIELD,2,b,a:b:c d e:f:g:h i:b:k:l:m n:b),a:b:c   i:b:k:l:m n:b)
+
 UC_LC_LETTER_PAIRS := A:a B:b C:c D:d E:e F:f G:g H:h I:i J:j K:k L:l M:m N:n O:o P:p Q:q R:r S:s T:t U:u V:v W:w X:x Y:y Z:z
 
 # @brief Converts a given string to lowercase.
@@ -702,7 +720,7 @@ FIND_FIRST_TOOL = $(strip $(shell \
 #       expressions separated by semicolons. Each expression attempts to check for the tool's
 #       presence and echoes the tool's name if it is missing. All output is then stripped of
 #       extraneous whitespace.
-FIND_MISSING_TOOLS = $(strip $(error \
+FIND_MISSING_TOOLS = $(strip $(shell \
 	$(subst \
 		$(DOLLARS)(SPACE),$\
 		$(SPACE),$\
