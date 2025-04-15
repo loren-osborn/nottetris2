@@ -24,12 +24,14 @@ SOURCE_DIR                  := src
 LOVE_FILE                   := $(BUILD_DIR)/$(GAME_NAME_LOWER_NOSPACES).love
 
 MACOS_APP_BUNDLE            := $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME)).app
-MACOS_APP_BUNDLE_BINARY     := $(GAME_NAME_NOSPACES)
+MACOS_APP_ICON_BASENAME     := $(call TO_TITLE_CASE,$(GAME_NAME))Icon
+MACOS_APP_BUNDLE_BINARY     := $(GAME_NAME_LOWER_NOSPACES)
 MACOS_APP_BUNDLE_PLIST_DICT := \
     CFBundleExecutable:$(MACOS_APP_BUNDLE_BINARY) \
     CFBundleIdentifier:$(IDENTIFIER) \
     CFBundleName:$(call TO_TITLE_CASE,$(GAME_NAME)) \
     CFBundleVersion:1.0 \
+    CFBundleIconFile:$(MACOS_APP_ICON_BASENAME) \
     CFBundlePackageType:APPL
 
 define MACOS_PLIST_TEMPLATE
@@ -98,7 +100,7 @@ BINARIES_TO_BUILD := $(strip \
 # These are the final installable packages which go in the dist directory.
 PACKAGES_TO_BUILD := $(strip \
     $(if $(filter mac,$(PLATFORMS_TO_BUILD)),$\
-        $(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME))-macos.zip,$\
+        $(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME)).dmg,$\
     ) \
     $(if $(filter windows,$(PLATFORMS_TO_BUILD)),$\
         $(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME))Installer.exe,$\
@@ -184,29 +186,29 @@ ifneq ($(MISSING_TOOLS),)
     $(error The system is missing the following required tools: $(call GRAMATICAL_JOIN_LIST,$(MISSING_TOOLS),$(SPACE)and$(SPACE),$(COMMA)$(SPACE),none))
 endif
 
-DOWNLOAD_URL_TO_FILE = $(if $(filter wget,$(FOUND_DOWNLOADER)),wget -q -O $(2) $(1),curl -fsSL -o $(2) $(1))
-CONVERT_SVG_AT_SIZE_TO_ICON = $(if $(filter rsvg-convert,$(FOUND_IMAGE_CONVERTERS)),rsvg-convert -w $(2) -h $(3) $(1) -o $(4),convert -resize $(2)x$(3) $(1) $(4))
+DOWNLOAD_URL_TO_FILE = $(if $(filter wget,$(FOUND_DOWNLOADER)),wget -v -O $(2) $(1),curl -fsSL -o $(2) $(1))
+CONVERT_SVG_AT_SIZE_TO_IMAGE = $(if $(filter rsvg-convert,$(FOUND_IMAGE_CONVERTERS)),rsvg-convert -w $(2) -h $(3) $(1) -o $(4),convert -resize $(2)x$(3) $(1) $(4))
 
 ### Build Steps
 
 # -- Build the .love Archive --
-$(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(call DIR_IF_MISSING,$(LOVE_FILE)) $(shell find $(SOURCE_DIR)) src/graphics/NotTetris2Icon.png
+$(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(call DIR_IF_MISSING,$(LOVE_FILE)) $(shell find $(SOURCE_DIR)) src/graphics/NotTetris2Icon.png Makefile
 	@echo "Creating LÖVE archive..."
 	cd $(SOURCE_DIR) && command zip -9 -r $(realpath $(dir $(LOVE_FILE)))/$(notdir $(LOVE_FILE)) ./*
-	@[ -f "$(LOVE_FILE)" ] && echo "LÖVE archive created at $(LOVE_FILE)"
+	@[ -f "$@" ] && echo "LÖVE archive created at $@"
 
 # -- Ensure directories exist --
 %/.:
-	mkdir -p "$(patsubst %/.,%,$(subst $(DOLLARS)(SPACE),$(SPACE),$@))"
+	[ -d "$(patsubst %/.,%,$@)" ] || ( mkdir -p "$(patsubst %/.,%,$@)" || (rm -rf "$(patsubst %/.,%,$@)" ; exit 1))
 
 # -- Vendor Asset Download and Extraction --
-$(eval $(foreach asset,$(filter $(VENDOR_DIR)/love2d/%,$(REQUIRED_ASSETS)),$(NEWLINE)$(asset): $(call DIR_IF_MISSING,$(asset))$(NEWLINE)$(TAB)command $(call DOWNLOAD_URL_TO_FILE,https://github.com/love2d/love/releases/download/$(REQUIRED_LOVE_VERSION)/$(notdir $(asset)),$(asset))$(NEWLINE)$(NEWLINE)))
+$(eval $(foreach asset,$(filter $(VENDOR_DIR)/love2d/%,$(REQUIRED_ASSETS)),$(NEWLINE)$(asset): $(call DIR_IF_MISSING,$(asset)) Makefile$(NEWLINE)$(TAB)command $(call DOWNLOAD_URL_TO_FILE,https://github.com/love2d/love/releases/download/$(REQUIRED_LOVE_VERSION)/$(notdir $(asset)),$(asset))$(NEWLINE)$(NEWLINE)))
 
 # -- Icon Conversion Targets --
 # Convert *.svg into PNG and ICO as needed.
-$(BUILD_DIR)/icons/%_256.png $(BUILD_DIR)/icons/%_converted.ico src/graphics/%.png: src/graphics/%.svg $(BUILD_DIR)/icons/.
+$(BUILD_DIR)/icons/%_256.png $(BUILD_DIR)/icons/%_converted.ico src/graphics/%.png: src/graphics/%.svg $(shell [ -d "$(BUILD_DIR)/icons" ] || echo "$(BUILD_DIR)/icons/.") Makefile
 	@echo "Converting $< to $(call TO_UPPER,$(patsubst .%,%,$(suffix $@)))..."
-	$(call CONVERT_SVG_AT_SIZE_TO_ICON,$<,256,256,$@)
+	$(call CONVERT_SVG_AT_SIZE_TO_IMAGE,$<,256,256,$@)
 	@[ -f $@ ] && echo "Created $@"
 # (Additional conversion targets for platform-specific icons may be added as needed.)
 
@@ -215,8 +217,8 @@ $(eval \
 		icon_blob,$\
 		$(ALL_MACOS_ICON_BLOBS),$\
 		$(NEWLINE)$\
-			$(BUILD_DIR)/icons/AppIcon.iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob)))):$(SPACE)src/graphics/NotTetris2Icon_converted.svg$(SPACE)$(BUILD_DIR)/icons/AppIcon.iconset/.$(NEWLINE)$\
-			$(TAB)$(call CONVERT_SVG_AT_SIZE_TO_ICON,$(DOLLARS)<,$(call GET_FIELD_FROM_BLOBS,2,$(icon_blob)),$(call GET_FIELD_FROM_BLOBS,2,$(icon_blob)),$(DOLLARS)@)$(NEWLINE)$\
+			$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob)))):$(SPACE)src/graphics/NotTetris2Icon.svg$(SPACE)$(call DIR_IF_MISSING,$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob))))) Makefile$(NEWLINE)$\
+			$(TAB)$(call CONVERT_SVG_AT_SIZE_TO_IMAGE,$(DOLLARS)<,$(call GET_FIELD_FROM_BLOBS,2,$(icon_blob)),$(call GET_FIELD_FROM_BLOBS,2,$(icon_blob)),$(DOLLARS)@)$(NEWLINE)$\
 	)$\
 	$(foreach \
 		icon_blob,$\
@@ -224,24 +226,28 @@ $(eval \
 		$(if \
 			$(findstring $(COMMA),$(icon_blob)),$\
 		  $(NEWLINE)$\
-			  $(BUILD_DIR)/icons/AppIcon.iconset/$(word 2,$(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob)))):$(SPACE)$(BUILD_DIR)/icons/AppIcon.iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob))))$(NEWLINE)$\
+			  $(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(word 2,$(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob)))):$(SPACE)$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob)))) Makefile$(NEWLINE)$\
 			  $(TAB)cp $(DOLLARS)< $(DOLLARS)@$(NEWLINE),$\
 			$\
 		)$\
 	)$\
+	$(NEWLINE)$\
+	$(MACOS_APP_BUNDLE)/Contents/Resources/$(MACOS_APP_ICON_BASENAME).icns: $(foreach file,$(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(ALL_MACOS_ICON_BLOBS))),$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(file)) $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/Resources/$(MACOS_APP_ICON_BASENAME).icns) Makefile$(NEWLINE)$\
+		$(TAB)iconutil -c icns $(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset -o $(DOLLARS)@$(NEWLINE)$\
+	$(NEWLINE)$\
 )
 
 
 
 # -- Native Binary Build Targets --
 # Windows binary targets (native concatenation)
-$(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_32.exe: $(LOVE_FILE)
+$(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_32.exe: $(LOVE_FILE) Makefile
 	@echo "Building Windows 32-bit binary..."
 	mkdir -p $(dir $@)
 	cat /usr/share/love/love.exe $(LOVE_FILE) > $@
 	@[ -f $@ ] && echo "Created $@"
 
-$(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_64.exe: $(LOVE_FILE)
+$(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_64.exe: $(LOVE_FILE) Makefile
 	@echo "Building Windows 64-bit binary..."
 	mkdir -p $(dir $@)
 	cat /usr/share/love/love.exe $(LOVE_FILE) > $@
@@ -254,25 +260,34 @@ $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_64.exe: $(LOVE_FILE)
 # 	mkdir -p $(dir $@)
 # 	cp $(LOVE_FILE) $@
 
-$(MACOS_APP_BUNDLE)/Contents/MacOS/$(MACOS_APP_BUNDLE_BINARY): $(MACOS_APP_BUNDLE)/Contents/MacOS/. $(LOVE_FILE)
-	exit 1 ; # need to copy mac binary to $@ first
-	cat $(LOVE_FILE) >> $@
-	@[ -f $@ ] && echo "Assembled $@"
+$(MACOS_APP_BUNDLE)/Contents/MacOS/$(MACOS_APP_BUNDLE_BINARY): $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/MacOS/$(MACOS_APP_BUNDLE_BINARY)) $(LOVE_FILE) $(VENDOR_DIR)/love2d/love-$(REQUIRED_LOVE_VERSION)-macos.zip Makefile
+	(rm -rf $(BUILD_DIR)/extract/macOS_tmp && mkdir -p $(BUILD_DIR)/extract/macOS_tmp && unzip -o $(VENDOR_DIR)/love2d/love-11.5-macos.zip -d $(BUILD_DIR)/extract/macOS_tmp) || (rm -rf $(BUILD_DIR)/extract/macOS_tmp ; exit 1)
+	mv $(BUILD_DIR)/extract/macOS_tmp/love.app/Contents/Frameworks $(MACOS_APP_BUNDLE)/Contents || (rm -rf $(BUILD_DIR)/extract/macOS_tmp $(MACOS_APP_BUNDLE)/Contents/Frameworks ; exit 1)
+	cat $(BUILD_DIR)/extract/macOS_tmp/love.app/Contents/MacOS/love $(LOVE_FILE) > $@ || (rm -rf $(BUILD_DIR)/extract/macOS_tmp $(MACOS_APP_BUNDLE)/Contents/Frameworks $@ ; exit 1)
+	@# make file executable:
+	chmod $(shell printf "%03o" $$(( 8#$$($(GET_FILE_PERMISSIONS_OCTAL) $(LOVE_FILE)) | ((8#$$($(GET_FILE_PERMISSIONS_OCTAL) $(LOVE_FILE)) & 0444) >> 2) ))) $@ || (rm -rf $(BUILD_DIR)/extract/macOS_tmp $(MACOS_APP_BUNDLE)/Contents/Frameworks $@ ; exit 1)
+	@[ -f $@ ] && echo "Copied $(MACOS_APP_BUNDLE)/Contents/Frameworks and Assembled $@"
 
-$(MACOS_APP_BUNDLE)/Contents/PkgInfo: $(MACOS_APP_BUNDLE)/Contents/.
+$(MACOS_APP_BUNDLE)/Contents/PkgInfo: $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/PkgInfo) Makefile
 	echo "APPL????" > $@
 	@[ -f $@ ] && echo "Created $@"
 
-$(MACOS_APP_BUNDLE)/Contents/Info.plist: $(MACOS_APP_BUNDLE)/Contents/.
+$(MACOS_APP_BUNDLE)/Contents/Info.plist: $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/Info.plist) Makefile
 	@# Generate a basic Info.plist
-	( echo "$(subst $(NEWLINE)," ; echo ",$(subst ",\",$(subst !,\!,$(MACOS_APP_BUNDLE_PLIST))))" ) > $@
+	( echo '$(subst $(NEWLINE),' ; echo ',$(MACOS_APP_BUNDLE_PLIST))' ) > $@
 	@[ -f $@ ] && echo "Created $@"
 
-$(MACOS_APP_BUNDLE): $(MACOS_APP_BUNDLE)/Contents/Info.plist \
-    $(MACOS_APP_BUNDLE)/Contents/PkgInfo $(MACOS_APP_BUNDLE)/Contents/MacOS/$(GAME_NAME_NOSPACES)
+$(MACOS_APP_BUNDLE): \
+    $(MACOS_APP_BUNDLE)/Contents/Info.plist \
+    $(MACOS_APP_BUNDLE)/Contents/PkgInfo \
+    $(MACOS_APP_BUNDLE)/Contents/MacOS/$(MACOS_APP_BUNDLE_BINARY) \
+    $(MACOS_APP_BUNDLE)/Contents/Resources/$(MACOS_APP_ICON_BASENAME).icns \
+    Makefile
+	@# Bundle directory already created... now just sign it:
+	exit 1 ; # need to sign app bundle
 
 # Linux binary target (the native Love2D binary plus .love)
-$(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))-linux: $(LOVE_FILE) $(REQUIRED_ASSETS_LINUX_APP)
+$(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))-linux: $(LOVE_FILE) $(REQUIRED_ASSETS_LINUX_APP) Makefile
 	@echo "Building Linux binary..."
 	mkdir -p $(dir $@)
 	# Extract the Love2D archive to a temporary location.
@@ -283,6 +298,7 @@ $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))-linux: $(LOVE_FILE) $(REQUIR
 	# Optionally, append the .love file or handle as per AppImage best practices.
 	@[ -f $@ ] && echo "Created native Linux binary: $@"
 
+ifeq ($(OS_TYPE),Windows)
 # -- Package (Installer) Build Targets --
 # Windows Installer via Inno Setup: Two ways.
 # 1. Native Windows build: when running on Windows, invoke innosetup directly.
@@ -292,24 +308,26 @@ $(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME))Installer.exe: $(BUILD_DIR)/bin/$(
 	     innosetup "$(DIST_DIR)/innosetup.iss", \
 	     echo "Error: Native Inno Setup installer build only available on Windows.")
 	@[ -f $@ ] && echo "Created installer at: $@"
-
+else
 # 2. Windows Installer via Wine: when not on Windows, use Wine to run innosetup.
-$(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME))Installer.Wine.exe: $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_32.exe $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_64.exe innosetup.iss
+$(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME))Installer.exe: $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_32.exe $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_64.exe innosetup.iss Makefile
 	@echo "Building Windows installer via Wine..."
 	@$(if $(filter-out Windows,$(OS_TYPE)), \
 	     wine innosetup "$(DIST_DIR)/innosetup.iss", \
 	     echo "Error: Wine-based installer build not applicable on Windows.")
 	@[ -f $@ ] && echo "Created installer via Wine at: $@"
+endif
 
 # macOS DMG Build Target
-$(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME))-macos.zip: $(MACOS_APP_BUNDLE)
+$(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME)).dmg: $(MACOS_APP_BUNDLE) Makefile
 	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Skipping macOS build: Not running on macOS."; exit 0; fi
+	exit 1
 	@echo "Packaging macOS App Bundle..."
 	zip -9 -r $@ $(BUILD_DIR)/macos
 	@echo "Created macOS package at $@"
 
 # Linux Installer: Create an AppImage package.
-$(DIST_DIR)/NotTetris-$(VERSION)-x86_64.AppImage: $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))-linux $(BUILD_DIR)/icons/NotTetris2Icon_256.png
+$(DIST_DIR)/NotTetris-$(VERSION)-x86_64.AppImage: $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))-linux $(BUILD_DIR)/icons/NotTetris2Icon_256.png Makefile
 	@echo "Building Linux AppImage package..."
 	# Create AppDir structure
 	mkdir -p $(BUILD_DIR)/linux/AppDir/usr/bin
@@ -325,7 +343,7 @@ $(DIST_DIR)/NotTetris-$(VERSION)-x86_64.AppImage: $(BUILD_DIR)/bin/$(call TO_TIT
 
 # -- Inno Setup Configuration Generation --
 # Generate a basic Inno Setup script to be used by the Windows installer targets.
-innosetup.iss: README.md LICENSE.txt $(BUILD_DIR)/icons/NotTetris2Icon_converted.ico NotTetris2Installer_artwork.bmp
+innosetup.iss: README.md LICENSE.txt $(BUILD_DIR)/icons/NotTetris2Icon_converted.ico NotTetris2Installer_artwork.bmp Makefile
 	@echo "Generating Inno Setup configuration..."
 	@mkdir -p $(DIST_DIR)
 	@echo "; Inno Setup Script for $(GAME_NAME)" > $(DIST_DIR)/innosetup.iss

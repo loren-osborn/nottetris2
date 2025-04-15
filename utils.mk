@@ -626,6 +626,16 @@ OS_TYPE := $(if \
 		$(if $(UNAME_S),Unix/Linux,Unknown)$\
 	)$\
 )
+POSIX_TYPE := $(if \
+	$(filter \
+		Darwin FreeBSD OpenBSD NetBSD,$\
+		$(UNAME_S)$\
+	),$\
+	BSD,$\
+	SysV$\
+)
+
+GET_FILE_PERMISSIONS_OCTAL = $(if $(filter BSD,$(POSIX_TYPE)),stat -f '%Lp',stat -c '%a')
 
 # @brief Finds the first available tool from a list of supported command names.
 #
