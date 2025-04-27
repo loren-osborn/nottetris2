@@ -22,6 +22,7 @@ BUILD_DIR                   := build
 DIST_DIR                    := dist
 SOURCE_DIR                  := src
 LOVE_FILE                   := $(BUILD_DIR)/$(GAME_NAME_LOWER_NOSPACES).love
+GENERATED_FILES             := $(BUILD_DIR) src/graphics/NotTetris2Icon.png
 
 MACOS_APP_BUNDLE            := $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME)).app
 MACOS_APP_ICON_BASENAME     := $(call TO_TITLE_CASE,$(GAME_NAME))Icon
@@ -79,12 +80,13 @@ ALL_MACOS_ICON_BLOBS := $(foreach id,$(ALL_MACOS_ICON_SIZE_IDS),$(id):$(sort $(c
 # -- Platform Build Targets --
 # Build for all platforms unless skipped.
 # These are the target platforms for which files will be generated.
-PLATFORMS_TO_BUILD := $(filter-out $(patsubst skip_%,%,$(call HAS_PSEUDO_TARGET,$(filter skip_%,$(PSEUDO_TARGETS)))),mac windows linux)
+DEFAULT_PLATFORMS_TO_BUILD := $(filter-out $(patsubst skip_%,%,$(call HAS_PSEUDO_TARGET,$(filter skip_%,$(PSEUDO_TARGETS)))),mac windows linux)
+PLATFORMS_TO_BUILD := $(DEFAULT_PLATFORMS_TO_BUILD)
 
 # -- Binary Outputs --
 # Native binaries (pre-packaging) are separate targets with real output filenames.
 # (For Windows, we produce separate 32-bit and 64-bit executables.)
-BINARIES_TO_BUILD := $(strip \
+DEFAULT_BINARIES_TO_BUILD := $(strip \
     $(if $(filter mac,$(PLATFORMS_TO_BUILD)),$\
         $(MACOS_APP_BUNDLE),$\
     ) \
@@ -98,7 +100,7 @@ BINARIES_TO_BUILD := $(strip \
 
 # -- Package Outputs --
 # These are the final installable packages which go in the dist directory.
-PACKAGES_TO_BUILD := $(strip \
+DEFAULT_PACKAGES_TO_BUILD := $(strip \
     $(if $(filter mac,$(PLATFORMS_TO_BUILD)),$\
         $(DIST_DIR)/$(call TO_TITLE_CASE,$(GAME_NAME)).dmg,$\
     ) \
@@ -114,7 +116,7 @@ PACKAGES_TO_BUILD := $(strip \
 # If no platforms are selected, then output the .love file in build.
 DEFAULT_GOALS := $(strip \
     $(if $(PLATFORMS_TO_BUILD),,$(LOVE_FILE)) \
-    $($(if $(call HAS_PSEUDO_TARGET,binaries_only),BINARIES,PACKAGES)_TO_BUILD) \
+    $(DEFAULT_$(if $(call HAS_PSEUDO_TARGET,binaries_only),BINARIES,PACKAGES)_TO_BUILD) \
 )
 
 # Enforce macOS builds only on macOS.
@@ -124,10 +126,7 @@ $(if $(filter macOS,$(OS_TYPE)),$,$\
     )$\
 )
 
-# DIR_IF_MISSING ensures the directory exists by appending a trailing '.'.
-DIR_IF_MISSING = $(shell [ -d $(dir $(1)) ] || echo $(dir $(1)).)
-
-default: $(DEFAULT_GOALS)
+all default: $(DEFAULT_GOALS)
 
 ### Required Tools and Assets
 
@@ -153,11 +152,11 @@ REQUIRED_TOOLS_MAC_INSTALLER :=
 REQUIRED_ASSETS_MAC_INSTALLER :=
 
 # Windows definitions:
-REQUIRED_TOOLS_WINDOWS_APP := $(IMAGE_CONVERTERS)
+REQUIRED_TOOLS_WINDOWS_APP := $(if $(filter Windows,$(OS_TYPE)),,wine) $(IMAGE_CONVERTERS) windows:rcedit
 REQUIRED_ASSETS_WINDOWS_APP := $(foreach bits,32 64,$(VENDOR_DIR)/love2d/love-$(REQUIRED_LOVE_VERSION)-win$(bits).zip)
 # Always require Inno Setup; on non-Windows, also require wine.
 # REQUIRED_TOOLS_WINDOWS_INSTALLER := windows:C:/Program$(DOLLARS)(SPACE)Files$(DOLLARS)(SPACE)(x86)/Inno$(DOLLARS)(SPACE)Setup$(DOLLARS)(SPACE)6/Compil32.exe $(if $(filter Windows,$(OS_TYPE)),,wine)
-REQUIRED_TOOLS_WINDOWS_INSTALLER := $(if $(filter Windows,$(OS_TYPE)),,wine)
+REQUIRED_TOOLS_WINDOWS_INSTALLER :=
 REQUIRED_ASSETS_WINDOWS_INSTALLER :=
 
 # Linux definitions:
@@ -192,17 +191,14 @@ CONVERT_SVG_AT_SIZE_TO_IMAGE = $(if $(filter rsvg-convert,$(FOUND_IMAGE_CONVERTE
 ### Build Steps
 
 # -- Build the .love Archive --
-$(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(call DIR_IF_MISSING,$(LOVE_FILE)) $(shell find $(SOURCE_DIR)) src/graphics/NotTetris2Icon.png Makefile
+$(LOVE_FILE): $(REQUIRED_ASSETS_GENERIC) $(shell find $(SOURCE_DIR)) src/graphics/NotTetris2Icon.png Makefile
+	$(call RECIPE_LINE_CREATE_DIR_IF_MISSING,$(dir $@))
 	@echo "Creating LÖVE archive..."
 	cd $(SOURCE_DIR) && command zip -9 -r $(realpath $(dir $(LOVE_FILE)))/$(notdir $(LOVE_FILE)) ./*
 	@[ -f "$@" ] && echo "LÖVE archive created at $@"
 
-# -- Ensure directories exist --
-%/.:
-	[ -d "$(patsubst %/.,%,$@)" ] || ( mkdir -p "$(patsubst %/.,%,$@)" || (rm -rf "$(patsubst %/.,%,$@)" ; exit 1))
-
 # -- Vendor Asset Download and Extraction --
-$(eval $(foreach asset,$(filter $(VENDOR_DIR)/love2d/%,$(REQUIRED_ASSETS)),$(NEWLINE)$(asset): $(call DIR_IF_MISSING,$(asset)) Makefile$(NEWLINE)$(TAB)command $(call DOWNLOAD_URL_TO_FILE,https://github.com/love2d/love/releases/download/$(REQUIRED_LOVE_VERSION)/$(notdir $(asset)),$(asset))$(NEWLINE)$(NEWLINE)))
+$(eval $(foreach asset,$(filter $(VENDOR_DIR)/love2d/%,$(REQUIRED_ASSETS)),$(NEWLINE)$(asset): Makefile$(NEWLINE)$(TAB)$(DOLLARS)(call RECIPE_LINE_CREATE_DIR_IF_MISSING,$(DOLLARS)(dir $(DOLLARS)@))$(NEWLINE)$(TAB)command $(call DOWNLOAD_URL_TO_FILE,https://github.com/love2d/love/releases/download/$(REQUIRED_LOVE_VERSION)/$(notdir $(asset)),$(asset))$(NEWLINE)$(NEWLINE)))
 
 # -- Icon Conversion Targets --
 # Convert *.svg into PNG and ICO as needed.
@@ -217,7 +213,8 @@ $(eval \
 		icon_blob,$\
 		$(ALL_MACOS_ICON_BLOBS),$\
 		$(NEWLINE)$\
-			$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob)))):$(SPACE)src/graphics/NotTetris2Icon.svg$(SPACE)$(call DIR_IF_MISSING,$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob))))) Makefile$(NEWLINE)$\
+			$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(firstword $(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(icon_blob)))):$(SPACE)src/graphics/NotTetris2Icon.svg Makefile$(NEWLINE)$\
+			$(TAB)$(DOLLARS)(call RECIPE_LINE_CREATE_DIR_IF_MISSING,$(DOLLARS)(dir $(DOLLARS)@))$(NEWLINE)$\
 			$(TAB)$(call CONVERT_SVG_AT_SIZE_TO_IMAGE,$(DOLLARS)<,$(call GET_FIELD_FROM_BLOBS,2,$(icon_blob)),$(call GET_FIELD_FROM_BLOBS,2,$(icon_blob)),$(DOLLARS)@)$(NEWLINE)$\
 	)$\
 	$(foreach \
@@ -232,7 +229,8 @@ $(eval \
 		)$\
 	)$\
 	$(NEWLINE)$\
-	$(MACOS_APP_BUNDLE)/Contents/Resources/$(MACOS_APP_ICON_BASENAME).icns: $(foreach file,$(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(ALL_MACOS_ICON_BLOBS))),$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(file)) $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/Resources/$(MACOS_APP_ICON_BASENAME).icns) Makefile$(NEWLINE)$\
+	$(MACOS_APP_BUNDLE)/Contents/Resources/$(MACOS_APP_ICON_BASENAME).icns: $(foreach file,$(subst $(COMMA),$(SPACE),$(call GET_FIELD_FROM_BLOBS,3,$(ALL_MACOS_ICON_BLOBS))),$(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset/$(file)) Makefile$(NEWLINE)$\
+		$(TAB)$(DOLLARS)(call RECIPE_LINE_CREATE_DIR_IF_MISSING,$(DOLLARS)(dir $(DOLLARS)@))$(NEWLINE)$\
 		$(TAB)iconutil -c icns $(BUILD_DIR)/icons/$(MACOS_APP_ICON_BASENAME).iconset -o $(DOLLARS)@$(NEWLINE)$\
 	$(NEWLINE)$\
 )
@@ -253,26 +251,24 @@ $(BUILD_DIR)/bin/$(call TO_TITLE_CASE,$(GAME_NAME))_64.exe: $(LOVE_FILE) Makefil
 	cat /usr/share/love/love.exe $(LOVE_FILE) > $@
 	@[ -f $@ ] && echo "Created $@"
 
-# macOS native app bundle target.
-# $(MACOS_APP_BUNDLE)/Contents/MacOS/$(GAME_NAME_NOSPACES): $(LOVE_FILE)
-# 	@if [ -z "$(filter macOS,$(OS_TYPE))" ]; then echo "Error: macOS build only on macOS."; exit 1; fi
-# 	@echo "Building macOS App Bundle..."
-# 	mkdir -p $(dir $@)
-# 	cp $(LOVE_FILE) $@
-
-$(MACOS_APP_BUNDLE)/Contents/MacOS/$(MACOS_APP_BUNDLE_BINARY): $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/MacOS/$(MACOS_APP_BUNDLE_BINARY)) $(LOVE_FILE) $(VENDOR_DIR)/love2d/love-$(REQUIRED_LOVE_VERSION)-macos.zip Makefile
-	(rm -rf $(BUILD_DIR)/extract/macOS_tmp && mkdir -p $(BUILD_DIR)/extract/macOS_tmp && unzip -o $(VENDOR_DIR)/love2d/love-11.5-macos.zip -d $(BUILD_DIR)/extract/macOS_tmp) || (rm -rf $(BUILD_DIR)/extract/macOS_tmp ; exit 1)
+# This includes $(MACOS_APP_BUNDLE)/Contents/Frameworks: but grouped targets aren't supported in make 3.81
+$(MACOS_APP_BUNDLE)/Contents/MacOS/$(MACOS_APP_BUNDLE_BINARY): $(LOVE_FILE) $(VENDOR_DIR)/love2d/love-$(REQUIRED_LOVE_VERSION)-macos.zip Makefile
+	$(call RECIPE_LINE_CREATE_DIR_IF_MISSING,$(dir $@))
+	(rm -rf $(BUILD_DIR)/extract/macOS_tmp $(MACOS_APP_BUNDLE)/Contents/Frameworks && mkdir -p $(BUILD_DIR)/extract/macOS_tmp && unzip -o $(VENDOR_DIR)/love2d/love-11.5-macos.zip -d $(BUILD_DIR)/extract/macOS_tmp) || (rm -rf $(BUILD_DIR)/extract/macOS_tmp ; exit 1)
 	mv $(BUILD_DIR)/extract/macOS_tmp/love.app/Contents/Frameworks $(MACOS_APP_BUNDLE)/Contents || (rm -rf $(BUILD_DIR)/extract/macOS_tmp $(MACOS_APP_BUNDLE)/Contents/Frameworks ; exit 1)
 	cat $(BUILD_DIR)/extract/macOS_tmp/love.app/Contents/MacOS/love $(LOVE_FILE) > $@ || (rm -rf $(BUILD_DIR)/extract/macOS_tmp $(MACOS_APP_BUNDLE)/Contents/Frameworks $@ ; exit 1)
 	@# make file executable:
 	chmod $(shell printf "%03o" $$(( 8#$$($(GET_FILE_PERMISSIONS_OCTAL) $(LOVE_FILE)) | ((8#$$($(GET_FILE_PERMISSIONS_OCTAL) $(LOVE_FILE)) & 0444) >> 2) ))) $@ || (rm -rf $(BUILD_DIR)/extract/macOS_tmp $(MACOS_APP_BUNDLE)/Contents/Frameworks $@ ; exit 1)
+	rm -rf $(BUILD_DIR)/extract/macOS_tmp
 	@[ -f $@ ] && echo "Copied $(MACOS_APP_BUNDLE)/Contents/Frameworks and Assembled $@"
 
-$(MACOS_APP_BUNDLE)/Contents/PkgInfo: $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/PkgInfo) Makefile
+$(MACOS_APP_BUNDLE)/Contents/PkgInfo: Makefile
+	$(call RECIPE_LINE_CREATE_DIR_IF_MISSING,$(dir $@))
 	echo "APPL????" > $@
 	@[ -f $@ ] && echo "Created $@"
 
-$(MACOS_APP_BUNDLE)/Contents/Info.plist: $(call DIR_IF_MISSING,$(MACOS_APP_BUNDLE)/Contents/Info.plist) Makefile
+$(MACOS_APP_BUNDLE)/Contents/Info.plist: Makefile
+	$(call RECIPE_LINE_CREATE_DIR_IF_MISSING,$(dir $@))
 	@# Generate a basic Info.plist
 	( echo '$(subst $(NEWLINE),' ; echo ',$(MACOS_APP_BUNDLE_PLIST))' ) > $@
 	@[ -f $@ ] && echo "Created $@"
@@ -363,7 +359,10 @@ innosetup.iss: README.md LICENSE.txt $(BUILD_DIR)/icons/NotTetris2Icon_converted
 
 # -- Clean Target --
 clean:
-	rm -rf $(BUILD_DIR) $(DIST_DIR) $(VENDOR_DIR)
+	rm -rf $(GENERATED_FILES)
+
+dist_clean: clean
+	rm -rf $(DIST_DIR) $(VENDOR_DIR)
 
 .PHONY: $(PSEUDO_TARGETS) clean
 

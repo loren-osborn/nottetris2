@@ -3,6 +3,11 @@ SPACE := $(BLANK) $(BLANK)
 TAB := $(BLANK)	$(BLANK)
 OPEN_PAREN := (
 CLOSE_PAREN := )
+OPEN_CURLEY := {
+CLOSE_CURLEY := }
+SNG_QUOTE := '
+DBL_QUOTE := "
+BACKSLASH := \\
 COMMA := ,
 DOLLARS := $$
 
@@ -192,7 +197,7 @@ TEST_FN_INCREMENT = $(words $(TEST_FN_INCREMENT__INTERNAL_ACC))$(call DEFINE_VAR
 # @param 1 The actual value or expression to test.
 # @param 2 The expected value.
 # @param 3 (Optional) A custom error message to display if the assertion fails.
-ASSERT_EQ = $(call DEFINE_VAR,ASSERT_EQ__INTERNAL_ACTUAL,$(1),:=)$\
+ASSERT_EQ = $(call DEFINE_VAR,ASSERT_EQ__INTERNAL_ACTUAL,$(1),    :=)$\
 	$(call DEFINE_VAR,ASSERT_EQ__INTERNAL_EXPRESSION,$(subst $(DOLLARS),$(DOLLARS)$(DOLLARS),$(1)),:=)$\
 	$(eval $(NEWLINE)ifneq ($(subst _,_us_,$(subst $(SPACE),_sp_,$(ASSERT_EQ__INTERNAL_ACTUAL))),$(subst _,_us_,$(subst $(SPACE),_sp_,$(2))))$(NEWLINE)$\
 	$(DOLLARS)(error Value of $(DOLLARS)(ASSERT_EQ__INTERNAL_EXPRESSION) ("$(ASSERT_EQ__INTERNAL_ACTUAL)") expected to be "$(2)": $(if $(3),$(3),Assertion failed))$(NEWLINE)$\
@@ -229,6 +234,108 @@ $(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,,X,Y,Z),Z)
 $(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,foo,X,Y,Z),foo)
 $(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,foo bar,X,Y,Z),fooXbar)
 $(call ASSERT_EQ,$(DOLLARS)(call GRAMATICAL_JOIN_LIST,foo bar baz bee boo,X,Y,Z),fooYbarYbazYbeeXboo)
+
+# --- Quoting functions ---
+
+# @brief Escapes single quotes inside a shell string.
+#
+# This macro takes an input string and escapes all single quotes `'`
+# so that the result can be safely quoted in a shell single-quoted string.
+#
+# @param 1 The string to escape.
+# @return The escaped string, ready to wrap in single quotes.
+QUOTE_SH_SINGLE_INNER = $(subst $(SNG_QUOTE),$(SNG_QUOTE)$(BACKSLASH)$(SNG_QUOTE)$(SNG_QUOTE),$(1))
+
+# @brief Escapes double quotes and backslashes inside a shell string.
+#
+# This macro takes an input string and escapes all problematic characters
+# so that it can be safely used inside a double-quoted shell string.
+#
+# Escaped characters include:
+# - `\` (backslash)
+# - `"` (double quote)
+# - ``` ` ``` (backtick)
+# - `!` (exclamation mark)
+# - `$` (dollar sign)
+#
+# @param 1 The string to escape.
+# @return The escaped string, ready to wrap in double quotes.
+QUOTE_SH_DOUBLE_INNER = $(subst $(BACKSLASH),$(BACKSLASH)$(BACKSLASH),$(subst !,$(BACKSLASH)!,$(subst $(DBL_QUOTE),$(BACKSLASH)$(DBL_QUOTE),$(subst `,$(BACKSLASH)`,$(subst $(DOLLARS),$(BACKSLASH)$(DOLLARS),$(1))))))
+
+# @brief Wraps a string in single quotes for safe shell use.
+#
+# This macro escapes the string using QUOTE_SH_SINGLE_INNER,
+# then wraps it in single quotes `'...'`.
+#
+# @param 1 The string to quote.
+# @return A fully shell-safe single-quoted string.
+QUOTE_SH_SINGLE = $(SNG_QUOTE)$(call QUOTE_SH_SINGLE_INNER,$(1))$(SNG_QUOTE)
+
+# @brief Wraps a string in double quotes for safe shell use.
+#
+# This macro escapes the string using QUOTE_SH_DOUBLE_INNER,
+# then wraps it in double quotes `"..."`.
+#
+# @param 1 The string to quote.
+# @return A fully shell-safe double-quoted string.
+QUOTE_SH_DOUBLE = $(DBL_QUOTE)$(call QUOTE_SH_DOUBLE_INNER,$(1))$(DBL_QUOTE)
+
+# Example unit tests for quoting:
+$(call ASSERT_EQ,$(call QUOTE_SH_SINGLE,It$(SNG_QUOTE)s complicated),$(SNG_QUOTE)It$(SNG_QUOTE)$(BACKSLASH)$(SNG_QUOTE)$(SNG_QUOTE)s complicated$(SNG_QUOTE))
+# $(call ASSERT_EQ,$(call QUOTE_SH_DOUBLE,Hello $(DBL_QUOTE)world$(DBL_QUOTE) $(BACKSLASH)$(DOLLARS)user), $(DBL_QUOTE)Hello $(BACKSLASH)$(DBL_QUOTE)world$(BACKSLASH)$(DBL_QUOTE) $(BACKSLASH)$(BACKSLASH)$(BACKSLASH)$(DOLLARS)user$(DBL_QUOTE))
+
+
+# @brief Prefix used for suppressing normal Make echo output.
+#
+# This macro is used when defining Make recipes:
+# - If the 'debug' pseudo target is active, echo commands normally.
+# - Otherwise, suppress output unless the command fails.
+#
+# @return `@` if quiet, empty otherwise.
+QUIET_LINE = $(if $(call HAS_PSEUDO_TARGET,debug),,@)
+
+# @brief Determines whether Make was invoked in silent mode.
+#
+# If `s` is present in $(MAKEFLAGS), then Make is running in silent mode.
+# This is used to decide whether to explicitly echo commands.
+#
+# @return Non-empty if silent mode is active, empty otherwise.
+SILENT_MODE := $(findstring s,$(MAKEFLAGS))
+
+# @brief Echoes a shell command to stderr before executing it.
+#
+# In normal Make mode (non-silent), this macro:
+#  - Quotes the command safely using QUOTE_SH_SINGLE
+#  - Echoes the quoted command to stderr
+#  - Then executes the command.
+#
+# In silent mode (`make -s`), it simply executes the command without echoing.
+#
+# @param 1 The shell command to run.
+# @return The command to execute.
+ECHO_THEN_EXECUTE = $(if $(SILENT_MODE),,echo $(call QUOTE_SH_SINGLE,$(1)) >&2 ;) $(1)
+
+# @brief Emits a Makefile recipe line that ensures a directory exists.
+#
+# This macro generates a shell recipe line that checks whether a directory
+# exists. If the directory is missing, it echoes the mkdir command (unless
+# in silent mode) and then creates the directory using `mkdir -p`.
+#
+# The check and creation are both safely quoted to handle directory paths
+# that may contain spaces or special characters.
+#
+# The `QUIET_LINE` macro is used to optionally suppress normal output,
+# and `ECHO_THEN_EXECUTE` is used to provide visible feedback if Make is not silent.
+#
+# @param 1 The directory path to ensure exists.
+#
+# @return A recipe line suitable for use directly in a Makefile rule body.
+#
+# @example
+#   $(RECIPE_LINE_CREATE_DIR_IF_MISSING,build/icons)
+#   # Expands to something like:
+#   #   [ -d "build/icons" ] || ( echo 'mkdir -p build/icons' >&2 ; mkdir -p 'build/icons' )
+RECIPE_LINE_CREATE_DIR_IF_MISSING = $(QUIET_LINE)[ -d $(call QUOTE_SH_DOUBLE,$(1)) ] || ( $(call ECHO_THEN_EXECUTE,mkdir -p $(call QUOTE_SH_SINGLE,$(1))) )
 
 # @brief Lazily defines a variable, deferring its evaluation.
 #
