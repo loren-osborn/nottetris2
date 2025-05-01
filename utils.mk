@@ -211,10 +211,10 @@ ASSERT_EQ = \
 	$(call DEFINE_VAR,ASSERT_EQ__INTERNAL_EXPRESSION,$(subst $(DOLLARS),$(DOLLARS)$(DOLLARS),$(1)),:=)$\
     $(if $\
         $(call HAS_PSEUDO_TARGET,debug),$\
-        $(warning Testing if '$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(ASSERT_EQ__INTERNAL_ACTUAL))))' is equal to '$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(2))))'),$\
+        $(warning Testing if '$(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(ASSERT_EQ__INTERNAL_ACTUAL))))))' is equal to '$(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(2))))))'),$\
     )$\
-	$(eval $(NEWLINE)ifneq ($(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(ASSERT_EQ__INTERNAL_ACTUAL)))),$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(2)))))$(NEWLINE)$\
-	$(DOLLARS)(error Value of $(DOLLARS)(ASSERT_EQ__INTERNAL_EXPRESSION) ("$(ASSERT_EQ__INTERNAL_ACTUAL)") expected to be "$(2)": $(if $(3),$(3),Assertion failed))$(NEWLINE)$\
+	$(eval $(NEWLINE)ifneq ($(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(ASSERT_EQ__INTERNAL_ACTUAL)))))),$(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(2)))))))$(NEWLINE)$\
+	$(DOLLARS)(error Value of $(DOLLARS)(ASSERT_EQ__INTERNAL_EXPRESSION) ("$$(ASSERT_EQ__INTERNAL_ACTUAL)") expected to be "$(subst $$,$$$$,$(2))": $(if $(3),$(3),Assertion failed))$(NEWLINE)$\
 	endif$(NEWLINE))
 
 # First test TEST_FN_INCREMENT:
@@ -445,6 +445,81 @@ $(call ASSERT_EQ,$(DOLLARS)(call GET_FIELD_FROM_BLOBS,3,a:b:c d e:f:g:h i:j:k:l:
 GET_BLOBS_MATCHING_FIELD = $(foreach blob,$(3),$(if $(filter $(2),$(word $(1),$(subst :,$(SPACE),$(blob)))),$(blob),))
 
 $(call ASSERT_EQ,$(DOLLARS)(call GET_BLOBS_MATCHING_FIELD,2,b,a:b:c d e:f:g:h i:b:k:l:m n:b),a:b:c   i:b:k:l:m n:b)
+
+# @brief Replaces literal $$, space, tab, and newline with symbolic placeholders
+#
+# @param 1 The input string to escape.
+# @return A string with the following substitutions *in order* (outermost to innermost):
+#     $         -> $(DOLLARS)
+#     <space>   -> $(SPACE)
+#     <tab>     -> $(TAB)
+#     <newline> -> $(NEWLINE)
+ESCAPE_WHITESPACE = $\
+    $(subst \
+        $(NEWLINE),$\
+        $$(NEWLINE),$\
+        $(subst \
+            $(TAB),$\
+            $$(TAB),$\
+            $(subst \
+                $(SPACE),$\
+                $$(SPACE),$\
+                $(subst \
+                    $$,$\
+                    $$(DOLLARS),$\
+                    $(1)$\
+                )$\
+            )$\
+        )$\
+    )
+
+# @brief Reverses ESCAPE_WHITESPACE placeholders back to literal characters.
+#
+# Recognizes placeholders and the double-dollar literal:
+#   $$            -> $
+#   $(DOLLARS)    -> $
+#   $(SPACE)      -> <space>
+#   $(TAB)        -> <tab>
+#   $(NEWLINE)    -> <newline>
+UNESCAPE_WHITESPACE = $\
+    $(subst \
+        $$(DOLLARS),$\
+        $(DOLLARS),$\
+        $(subst \
+            $$(SPACE),$\
+            $(SPACE),$\
+            $(subst \
+                $$(TAB),$\
+                $(TAB),$\
+                $(subst \
+                    $$(NEWLINE),$\
+                    $(NEWLINE),$\
+                    $(subst \
+                        $$$$,$\
+                        $$(DOLLARS),$\
+                        $(1)$\
+                    )$\
+                )$\
+            )$\
+        )$\
+    )
+
+$(call ASSERT_EQ,$\
+  $$(call ESCAPE_WHITESPACE,hello world),$\
+  hello$$(SPACE)world$\
+)
+$(call ASSERT_EQ,$\
+  $$(call UNESCAPE_WHITESPACE,hello$$(SPACE)world),$\
+  hello world$\
+)
+$(call ASSERT_EQ,$\
+  $$(call ESCAPE_WHITESPACE,all$$(SPACE)sorts$$(TAB)of$$(SPACE)$$(NEWLINE)$$(DOLLARS)whitespace),$\
+  all$$(SPACE)sorts$$(TAB)of$$(SPACE)$$(NEWLINE)$$(DOLLARS)whitespace$\
+)
+$(call ASSERT_EQ,$\
+  $$(call UNESCAPE_WHITESPACE,all$$$$(SPACE)sorts$$$$(TAB)of$$$$(SPACE)$$$$(NEWLINE)$$$$(DOLLARS)whitespace$$$$),$\
+  all$(SPACE)sorts$(TAB)of$(SPACE)$(NEWLINE)$(DOLLARS)whitespace$(DOLLARS)$\
+)
 
 UC_LC_LETTER_PAIRS := A:a B:b C:c D:d E:e F:f G:g H:h I:i J:j K:k L:l M:m N:n O:o P:p Q:q R:r S:s T:t U:u V:v W:w X:x Y:y Z:z
 
