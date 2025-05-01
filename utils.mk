@@ -200,6 +200,24 @@ DEFINE_VAR = \
 # of variable assignments during debugging.
 TEST_FN_INCREMENT = $(words $(TEST_FN_INCREMENT__INTERNAL_ACC))$(call DEFINE_VAR,TEST_FN_INCREMENT__INTERNAL_ACC,X,+=)
 
+# @brief Escapes special characters to enable safe string comparison.
+#
+# This macro replaces potentially problematic characters in an input string
+# with unique placeholder tokens so that two strings containing whitespace,
+# dollar signs, or underscores can be compared reliably in Make conditionals.
+#
+# The following substitutions are performed, in order:
+#   - `_`          (underscore)  → `_us_`
+#   - `$(SPACE)`   (space)       → `_sp_`
+#   - `$(DOLLARS)` (dollar)      → `_dl_`
+#   - `$(TAB)`     (tab)         → `_tb_`
+#   - `$(NEWLINE)` (newline)     → `_nl_`
+#
+# @param 1 The original string to escape.
+# @return A transformed string with all `_, space, $, tab, newline` replaced
+#         by their corresponding `_us_, _sp_, _dl_, _tb_, _nl_` tokens.
+ESCAPE_CHARS_FOR_CMP = $(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(1))))))
+
 # @brief Asserts equality between an actual value and an expected value.
 #
 # This macro defines an assertion by comparing the actual value (provided as the first argument)
@@ -214,9 +232,9 @@ ASSERT_EQ = \
 	$(call DEFINE_VAR,ASSERT_EQ__INTERNAL_EXPRESSION,$(subst $(DOLLARS),$(DOLLARS)$(DOLLARS),$(1)),:=)$\
     $(if $\
         $(call HAS_PSEUDO_TARGET,debug),$\
-        $(warning Testing if '$(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(ASSERT_EQ__INTERNAL_ACTUAL))))))' is equal to '$(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(2))))))'),$\
+        $(warning Testing if '$(call ESCAPE_CHARS_FOR_CMP,$(ASSERT_EQ__INTERNAL_ACTUAL))' is equal to '$(call ESCAPE_CHARS_FOR_CMP,$(2))'),$\
     )$\
-	$(eval $(NEWLINE)ifneq ($(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(ASSERT_EQ__INTERNAL_ACTUAL)))))),$(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(2)))))))$(NEWLINE)$\
+	$(eval $(NEWLINE)ifneq ($(call ESCAPE_CHARS_FOR_CMP,$(ASSERT_EQ__INTERNAL_ACTUAL)),$(call ESCAPE_CHARS_FOR_CMP,$(2)))$(NEWLINE)$\
 	$(DOLLARS)(error Value of $(DOLLARS)(ASSERT_EQ__INTERNAL_EXPRESSION) ("$$(ASSERT_EQ__INTERNAL_ACTUAL)") expected to be "$(subst $$,$$$$,$(2))": $(if $(3),$(3),Assertion failed))$(NEWLINE)$\
 	endif$(NEWLINE))
 
