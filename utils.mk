@@ -10,11 +10,14 @@ DBL_QUOTE := "
 BACKSLASH := \$(BLANK)
 COMMA := ,
 DOLLARS := $$
+HASH := \#
 
 define NEWLINE
 
 
 endef
+
+SPECIAL_SHELL_CHARS := $(DOLLARS) $(BACKSLASH) ! ` " ' * ? [ ] ( ) { } < > | ; & $(HASH)
 
 # @brief Reverse a list of words.
 #
@@ -520,6 +523,61 @@ $(call ASSERT_EQ,$\
   $$(call UNESCAPE_WHITESPACE,all$$$$(SPACE)sorts$$$$(TAB)of$$$$(SPACE)$$$$(NEWLINE)$$$$(DOLLARS)whitespace$$$$),$\
   all$(SPACE)sorts$(TAB)of$(SPACE)$(NEWLINE)$(DOLLARS)whitespace$(DOLLARS)$\
 )
+
+# @brief Conditionally double-quotes a shell string if and only if needed.
+#
+# Quotes the input via DOUBLE_QUOTE_SH when **any** of the following are true:
+#   - The string is empty
+#   - The string contains whitespace (space, tab, or newline)
+#   - The string contains any shell-special character:
+#       $, \, !, `, ", ', *, ?, [ ], ( ), { }, < >, |, ;, &, #
+#
+# Otherwise, returns the string unchanged.
+#
+# Internally this relies on ESCAPE_WHITESPACE to turn whitespace
+# into placeholders like '$(SPACE)', which are themselves detected
+# alongside real special characters via SPECIAL_SHELL_CHARS.
+#
+# @param 1  The input string to test.
+# @return    The original string, or the result of DOUBLE_QUOTE_SH($(1))
+#            if one of the above conditions is met.
+#
+# @see ESCAPE_WHITESPACE, SPECIAL_SHELL_CHARS, DOUBLE_QUOTE_SH
+CONDITIONAL_QUOTE_SH = $(if \
+	$(or \
+		$(filter StartEnd,Start$(call ESCAPE_WHITESPACE,$(1))End),$\
+		$(strip \
+			$(foreach \
+				char,$\
+				$(SPECIAL_SHELL_CHARS),$\
+				$(findstring $(char),$(call ESCAPE_WHITESPACE,$(1)))$\
+			)$\
+		)$\
+	),$\
+	$(call DOUBLE_QUOTE_SH,$(1)),$\
+	$(1)$\
+)
+
+$(call ASSERT_EQ,$\
+	$$(call CONDITIONAL_QUOTE_SH,),$\
+	""$\
+)
+
+$(call ASSERT_EQ,$\
+	$$(call CONDITIONAL_QUOTE_SH,path/to/a/file.txt),$\
+	path/to/a/file.txt$\
+)
+
+$(call ASSERT_EQ,$\
+	$$(call CONDITIONAL_QUOTE_SH,path/to/a/wild*card.txt),$\
+	"path/to/a/wild*card.txt"$\
+)
+
+$(call ASSERT_EQ,$\
+	$$(call CONDITIONAL_QUOTE_SH,a[5]),$\
+	"a[5]"$\
+)
+
 
 UC_LC_LETTER_PAIRS := A:a B:b C:c D:d E:e F:f G:g H:h I:i J:j K:k L:l M:m N:n O:o P:p Q:q R:r S:s T:t U:u V:v W:w X:x Y:y Z:z
 
