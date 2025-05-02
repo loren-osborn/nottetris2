@@ -207,16 +207,17 @@ TEST_FN_INCREMENT = $(words $(TEST_FN_INCREMENT__INTERNAL_ACC))$(call DEFINE_VAR
 # dollar signs, or underscores can be compared reliably in Make conditionals.
 #
 # The following substitutions are performed, in order:
-#   - `_`          (underscore)  → `_us_`
-#   - `$(SPACE)`   (space)       → `_sp_`
-#   - `$(DOLLARS)` (dollar)      → `_dl_`
-#   - `$(TAB)`     (tab)         → `_tb_`
-#   - `$(NEWLINE)` (newline)     → `_nl_`
+#   - `_`            (underscore)  → `_us_`
+#   - `$(SPACE)`     (space)       → `_sp_`
+#   - `$(BACKSLASH)` (backslash)   → `_bs_`
+#   - `$(DOLLARS)`   (dollar)      → `_dl_`
+#   - `$(TAB)`       (tab)         → `_tb_`
+#   - `$(NEWLINE)`   (newline)     → `_nl_`
 #
 # @param 1 The original string to escape.
 # @return A transformed string with all `_, space, $, tab, newline` replaced
 #         by their corresponding `_us_, _sp_, _dl_, _tb_, _nl_` tokens.
-ESCAPE_CHARS_FOR_CMP = $(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(1))))))
+ESCAPE_CHARS_FOR_CMP = $(subst $(BACKSLASH),_bs_,$(subst $(NEWLINE),_nl_,$(subst $(TAB),_tb_,$(subst $(DOLLARS),_dl_,$(subst $(SPACE),_sp_,$(subst _,_us_,$(1)))))))
 
 # @brief Asserts equality between an actual value and an expected value.
 #
@@ -467,14 +468,26 @@ GET_BLOBS_MATCHING_FIELD = $(foreach blob,$(3),$(if $(filter $(2),$(word $(1),$(
 
 $(call ASSERT_EQ,$(DOLLARS)(call GET_BLOBS_MATCHING_FIELD,2,b,a:b:c d e:f:g:h i:b:k:l:m n:b),a:b:c   i:b:k:l:m n:b)
 
-# @brief Replaces literal $$, space, tab, and newline with symbolic placeholders
+# @brief Encode a string by replacing whitespace and dollars with stable placeholders.
 #
-# @param 1 The input string to escape.
-# @return A string with the following substitutions *in order* (outermost to innermost):
-#     $         -> $(DOLLARS)
-#     <space>   -> $(SPACE)
-#     <tab>     -> $(TAB)
-#     <newline> -> $(NEWLINE)
+# GNU Make treats spaces, tabs, and newlines as separators in its lists and
+# function arguments, which makes it very hard to work with filenames or
+# strings containing these characters.  This macro converts them (and dollar
+# signs) into unique placeholder sequences so you can safely pass the result
+# around in variables, targets, or `$(foreach)` loops *without* any further
+# special escaping.
+#
+# The nested substitutions (innermost first) are:
+#   `$`          → `$(DOLLARS)`
+#   `<space>`    → `$(SPACE)`
+#   `<tab>`      → `$(TAB)`
+#   `<newline>`  → `$(NEWLINE)`
+#
+# @param 1 The original string, which may contain literal spaces, tabs,
+#           newlines or dollar signs.
+# @return A “Make‑safe” escaped string that you can split or iterate over
+#         without Make treating its whitespace as delimiters.
+# @see UNESCAPE_WHITESPACE, UNESCAPE_WHITESPACE_AS_TARGET
 ESCAPE_WHITESPACE = $\
     $(subst \
         $(NEWLINE),$\
@@ -494,14 +507,26 @@ ESCAPE_WHITESPACE = $\
         )$\
     )
 
-# @brief Reverses ESCAPE_WHITESPACE placeholders back to literal characters.
+$(call ASSERT_EQ,$\
+  $$(call ESCAPE_WHITESPACE,hello world),$\
+  hello$$(SPACE)world$\
+)
+$(call ASSERT_EQ,$\
+  $$(call ESCAPE_WHITESPACE,all$$(SPACE)sorts$$(TAB)of$$(SPACE)$$(NEWLINE)$$(DOLLARS)whitespace),$\
+  all$$(SPACE)sorts$$(TAB)of$$(SPACE)$$(NEWLINE)$$(DOLLARS)whitespace$\
+)
+
+# @brief Decode placeholders back into literal whitespace and dollar signs.
 #
-# Recognizes placeholders and the double-dollar literal:
-#   $$            -> $
-#   $(DOLLARS)    -> $
-#   $(SPACE)      -> <space>
-#   $(TAB)        -> <tab>
-#   $(NEWLINE)    -> <newline>
+# Reverses `ESCAPE_WHITESPACE`, turning each placeholder token back into
+# its original character so you can restore the true string value when
+# you actually need to use it.
+#
+# @param 1 The escaped string, using `$$(DOLLARS)`, `$$(SPACE)`, `$$(TAB)`,
+#           and `$$(NEWLINE)`.
+# @return The unescaped string, containing real spaces, tabs, newlines, and
+#         dollar signs.
+# @see ESCAPE_WHITESPACE
 UNESCAPE_WHITESPACE = $\
     $(subst \
         $$(DOLLARS),$\
@@ -526,20 +551,59 @@ UNESCAPE_WHITESPACE = $\
     )
 
 $(call ASSERT_EQ,$\
-  $$(call ESCAPE_WHITESPACE,hello world),$\
-  hello$$(SPACE)world$\
-)
-$(call ASSERT_EQ,$\
-  $$(call UNESCAPE_WHITESPACE,hello$$(SPACE)world),$\
+  $$(call UNESCAPE_WHITESPACE,hello$$$$(SPACE)world),$\
   hello world$\
-)
-$(call ASSERT_EQ,$\
-  $$(call ESCAPE_WHITESPACE,all$$(SPACE)sorts$$(TAB)of$$(SPACE)$$(NEWLINE)$$(DOLLARS)whitespace),$\
-  all$$(SPACE)sorts$$(TAB)of$$(SPACE)$$(NEWLINE)$$(DOLLARS)whitespace$\
 )
 $(call ASSERT_EQ,$\
   $$(call UNESCAPE_WHITESPACE,all$$$$(SPACE)sorts$$$$(TAB)of$$$$(SPACE)$$$$(NEWLINE)$$$$(DOLLARS)whitespace$$$$),$\
   all$(SPACE)sorts$(TAB)of$(SPACE)$(NEWLINE)$(DOLLARS)whitespace$(DOLLARS)$\
+)
+
+# @brief Decode escaped spaces and dollars for use as a Make target, goal, or dependency name.
+#
+# This variant of `UNESCAPE_WHITESPACE` is meant for *target*, *goal*, or
+# *dependency* names. It:
+#   1. Converts `$(DOLLARS)` → `$`
+#   2. Converts `$(SPACE)`   → `\ ` (an escaped space)
+#   3. Rejects any *encoded* tabs or newlines (`$(TAB)`/`$(NEWLINE)`)
+#      with a Make error, since GNU Make cannot handle real tabs or newlines
+#      in rule names.
+#
+# Use `ESCAPE_WHITESPACE` first to produce the canonical escaped form, then
+# this macro to safely convert it into a valid rule name.
+#
+# @param 1 The escaped string with placeholder sequences.
+# @return A Make‑safe name where spaces are backslash‑escaped and dollar signs
+#         restored.
+# @see ESCAPE_WHITESPACE, UNESCAPE_WHITESPACE
+UNESCAPE_WHITESPACE_AS_TARGET = $\
+    $(if \
+        $(strip \
+            $(findstring $$(TAB),$(1))$\
+            $(findstring $$(NEWLINE),$(1))$\
+        ),$\
+        $(error Target $(call DOUBLE_QUOTE_SH,$(call UNESCAPE_WHITESPACE,$(1))) \
+            appears to contain <tab> or <newline> characters that are not \
+            supported in GNU Make within target, goal or dependancy names. \
+            Filenames containing these characters are not recommended.),$\
+        $(subst \
+            $$(DOLLARS),$\
+            $(DOLLARS),$\
+            $(subst \
+                $$(SPACE),$\
+                $(BACKSLASH)$(SPACE),$\
+                $(subst \
+                    $$$$,$\
+                    $$(DOLLARS),$\
+                    $(1)$\
+                )$\
+            )$\
+        )$\
+    )
+
+$(call ASSERT_EQ,$\
+  $$(call UNESCAPE_WHITESPACE_AS_TARGET,hello$$$$(SPACE)world),$\
+  hello\ world$\
 )
 
 # @brief Conditionally double-quotes a shell string if and only if needed.
@@ -953,11 +1017,11 @@ GET_FILE_PERMISSIONS_OCTAL = $(if $(filter BSD,$(POSIX_TYPE)),stat -f '%Lp',stat
 #   - Otherwise (on non-Windows systems without the "windows:" prefix), it uses:
 #         command -v <tool>
 #
-# If the check fails for a tool, the macro echoes that tool’s name (with any "windows:" 
+# If the check fails for a tool, the macro echoes that tool’s name (with any "windows:"
 # prefix removed). The resulting output is a space-separated list of the missing tools.
 #
 # @param 1 A space-separated list of tool names to check, in order of preference.
-#           (Note: The "windows:" prefix is supported but only triggers special handling 
+#           (Note: The "windows:" prefix is supported but only triggers special handling
 #           as described above.)
 # @return The name of the first available tool, or an empty string if none are found.
 #
@@ -1005,7 +1069,7 @@ FIND_FIRST_TOOL = $(strip $(shell \
 # This macro checks a space-separated list of tool names, returning a list of tools
 # that are not available in the user’s environment. For each tool in the input:
 #
-#   - If the tool is specified with a "windows:" prefix (e.g. "windows:innosetup") and 
+#   - If the tool is specified with a "windows:" prefix (e.g. "windows:innosetup") and
 #     the build is not running on Windows, it uses Wine to execute:
 #         wine cmd /c "where <tool>"
 #   - If the build is running on Windows, it uses the native Windows command:
